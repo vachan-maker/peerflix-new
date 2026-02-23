@@ -1,0 +1,13 @@
+# ngrok configuration for PeerFlix
+# This exposes both frontend and backend through public URLs
+
+version: "2"
+tunnels:
+  frontend:
+    proto: http
+    addr: 5000
+    inspect: false
+  backend:
+    proto: http
+    addr: 3000
+    inspect: false

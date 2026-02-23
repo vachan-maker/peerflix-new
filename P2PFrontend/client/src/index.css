@@ -1,0 +1,229 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* Custom xs breakpoint */
+@custom-variant xs (@media (min-width: 480px));
+
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  
+  --font-sans: 'DM Sans', sans-serif;
+  --font-display: 'Space Grotesk', sans-serif;
+  --font-mono: 'Space Mono', monospace;
+  
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+}
+
+/* NEO-BRUTALISM THEME */
+:root {
+  --background: 45 29% 97%; /* #fbf9f5 - Warm Paper */
+  --foreground: 0 0% 10%; /* #1a1a1a - Soft Black */
+  
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 10%;
+  
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 10%;
+  
+  --primary: 262 83% 58%; /* #8b5cf6 - Vivid Purple */
+  --primary-foreground: 0 0% 100%;
+  
+  --secondary: 173 80% 40%; /* #14b8a6 - Teal */
+  --secondary-foreground: 0 0% 100%;
+  
+  --muted: 45 20% 90%;
+  --muted-foreground: 0 0% 40%;
+  
+  --accent: 55 90% 60%; /* #fcd34d - Yellow */
+  --accent-foreground: 0 0% 10%;
+  
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+
+  --border: 0 0% 10%; /* Solid Black Borders */
+  --input: 0 0% 100%;
+  --ring: 262 83% 58%;
+  
+  --radius: 0.5rem;
+}
+
+.dark {
+  --background: 240 10% 4%; /* #09090b */
+  --foreground: 0 0% 98%;
+  
+  --card: 240 10% 10%;
+  --card-foreground: 0 0% 98%;
+  
+  --popover: 240 10% 10%;
+  --popover-foreground: 0 0% 98%;
+  
+  --primary: 262 83% 68%;
+  --primary-foreground: 0 0% 10%;
+  
+  --secondary: 173 80% 50%;
+  --secondary-foreground: 0 0% 10%;
+  
+  --muted: 240 10% 15%;
+  --muted-foreground: 240 5% 65%;
+  
+  --accent: 55 90% 60%;
+  --accent-foreground: 0 0% 10%;
+  
+  --destructive: 0 62% 30%;
+  --destructive-foreground: 0 0% 98%;
+
+  --border: 0 0% 80%; /* Light Borders for Dark Mode */
+  --input: 240 10% 15%;
+  --ring: 262 83% 68%;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display tracking-tight font-bold;
+  }
+
+  /* Completely hide all scrollbars while preserving scrolling */
+  ::-webkit-scrollbar {
+    width: 0px;
+    height: 0px;
+    background: transparent;
+    display: none;
+  }
+  
+  * {
+    -ms-overflow-style: none !important;  /* IE and Edge */
+    scrollbar-width: none !important;  /* Firefox */
+  }
+}
+
+@layer components {
+  .neo-box {
+    @apply border-2 border-black dark:border-white rounded-lg bg-card text-card-foreground shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)] transition-all;
+  }
+  
+  .neo-button {
+    @apply px-4 py-2 font-bold text-sm uppercase tracking-wide border-2 border-black dark:border-white rounded-md bg-accent text-accent-foreground shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] dark:shadow-[2px_2px_0px_0px_rgba(255,255,255,1)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none hover:bg-accent/80 transition-all;
+  }
+
+  .neo-input {
+    @apply w-full h-10 px-3 border-2 border-black dark:border-white rounded-md bg-input focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2;
+  }
+
+  .neo-badge {
+    @apply px-2 py-0.5 text-xs font-bold uppercase border border-black dark:border-white bg-white dark:bg-black rounded-sm shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] dark:shadow-[1px_1px_0px_0px_rgba(255,255,255,1)];
+  }
+
+  /* Skeleton shimmer animation */
+  .skeleton-shimmer {
+    animation: shimmer 2s infinite;
+  }
+
+  @keyframes shimmer {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(100%);
+    }
+  }
+
+  /* P2P pulse animation */
+  .p2p-pulse {
+    animation: p2p-pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes p2p-pulse {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.6;
+    }
+  }
+
+  /* Glassmorphism styles */
+  .glass {
+    background: rgba(18, 18, 31, 0.8);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .glass-card {
+    background: rgba(18, 18, 31, 0.6);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  /* Gradient text */
+  .gradient-text {
+    background: linear-gradient(90deg, #60a5fa, #a78bfa, #f472b6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Custom scrollbar for dark theme */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    display: block;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 3px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  /* Glow effects */
+  .glow-blue {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+  }
+
+  .glow-purple {
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+  }
+
+  .glow-green {
+    box-shadow: 0 0 20px rgba(34, 197, 94, 0.3);
+  }
+}
+

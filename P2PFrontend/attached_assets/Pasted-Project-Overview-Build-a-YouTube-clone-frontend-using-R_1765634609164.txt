@@ -1,0 +1,440 @@
+Project Overview
+Build a YouTube clone frontend using React.js with a modern, responsive UI that replicates YouTube's core functionality and user experience.
+
+Technical Stack
+React 18+ with TypeScript
+
+State Management: Zustand or Redux Toolkit
+
+Styling: Tailwind CSS with custom YouTube-like theme
+
+Routing: React Router DOM v6
+
+API: Axios + React Query for data fetching
+
+Video Player: React Player or custom Video.js
+
+Icons: React Icons + custom SVG icons
+
+Build Tool: Vite
+
+Testing: Jest + React Testing Library
+
+Core Features
+1. Layout & Navigation
+text
+Header/
+├── YouTube Logo (with toggle for dark/light mode)
+├── Search Bar (with voice search icon)
+├── Upload Button
+├── Notifications Bell
+├── User Avatar Menu
+└── Hamburger Menu (mobile)
+2. Home Page (YouTube-like Feed)
+Top Navigation Tabs:
+
+All, Music, Gaming, Live, Recently uploaded
+
+Video Grid Layout:
+
+Thumbnail with duration badge
+
+Channel avatar
+
+Video title (truncated)
+
+Channel name
+
+Views & upload time
+
+Three-dot menu (Save to playlist, Not interested, etc.)
+
+Responsive Grid:
+
+Desktop: 4-5 columns
+
+Tablet: 2-3 columns
+
+Mobile: 1 column
+
+3. Video Player Page
+text
+Left Column (70-75%):
+├── Video Player (with quality, speed controls)
+├── Video Title
+├── Views & Upload Date
+├── Like/Dislike/Share/Save buttons
+├── Channel Info (Subscribe button)
+└── Description (Expandable)
+
+Right Column (25-30%):
+├── Up Next (Autoplay toggle)
+├── Related Videos
+└── Comments Section
+4. Video Player Features
+Controls: Play/Pause, Volume, Progress bar, Fullscreen
+
+Quality Selector: 144p to 4K
+
+Playback Speed: 0.25x to 2x
+
+Subtitles/CC with language selection
+
+Miniplayer (picture-in-picture)
+
+Theater Mode
+
+Autoplay toggle
+
+Chapters (if available)
+
+5. Channel Pages
+text
+Channel Header:
+├── Banner Image
+├── Channel Avatar
+├── Channel Name & Subscriber Count
+├── Subscribe Button
+└── Tabs: Home, Videos, Playlists, Community, Channels, About
+
+Content:
+├── Featured/Pinned Video
+├── Video Grid (Most recent/Popular)
+├── Shorts Section
+└── Playlists
+6. Sidebar Navigation
+text
+Main:
+├── Home
+├── Shorts
+├── Subscriptions
+├── You (dropdown)
+└── History
+
+Explore:
+├── Trending
+├── Music
+├── Gaming
+├── News
+└── Sports
+
+Subscriptions List:
+├── Channel 1 (with live indicator)
+├── Channel 2
+└── More...
+
+Library:
+├── History
+├── Your Videos
+├── Watch Later
+├── Liked Videos
+└── Playlists
+7. Search Functionality
+Instant Search with debouncing
+
+Search Filters:
+
+Type: Video, Channel, Playlist
+
+Upload Date: Last hour, Today, This week, This month, This year
+
+Duration: Short (<4 min), Medium (4-20 min), Long (>20 min)
+
+Features: Live, 4K, HD, Subtitles
+
+Sort By: Relevance, Upload Date, View Count, Rating
+
+Search Suggestions dropdown
+
+No Results state with suggestions
+
+8. User Features
+Watch History
+
+Watch Later
+
+Liked Videos
+
+Playlists (Create, Edit, Delete)
+
+Subscriptions management
+
+Notifications (Bell icon)
+
+Dark/Light Theme toggle
+
+9. Upload/Studio Interface
+Upload Modal with drag & drop
+
+Video Details Form:
+
+Title, Description, Thumbnail
+
+Visibility (Public/Private/Unlisted)
+
+Audience (Made for kids?)
+
+Tags, Category
+
+Monetization settings
+
+Video Processing status
+
+Analytics Dashboard (views, watch time, revenue)
+
+10. Comments System
+Nested Comments (reply to replies)
+
+Like/Dislike comments
+
+Sort (Newest first, Top comments)
+
+Pinned Comments
+
+Channel Replies (highlighted)
+
+Load More pagination
+
+Component Structure
+text
+src/
+├── components/
+│   ├── layout/
+│   │   ├── Header/
+│   │   │   ├── SearchBar.tsx
+│   │   │   ├── UserMenu.tsx
+│   │   │   └── Notifications.tsx
+│   │   ├── Sidebar/
+│   │   │   ├── MainNav.tsx
+│   │   │   ├── SubscriptionsList.tsx
+│   │   │   └── CollapsibleSidebar.tsx
+│   │   └── Layout.tsx
+│   ├── video/
+│   │   ├── VideoPlayer/
+│   │   │   ├── PlayerControls.tsx
+│   │   │   ├── QualitySelector.tsx
+│   │   │   └── PlaybackSpeed.tsx
+│   │   ├── VideoCard/
+│   │   │   ├── Thumbnail.tsx
+│   │   │   ├── VideoInfo.tsx
+│   │   │   └── MenuOptions.tsx
+│   │   └── VideoGrid.tsx
+│   ├── channel/
+│   │   ├── ChannelHeader.tsx
+│   │   ├── ChannelTabs.tsx
+│   │   └── ChannelAbout.tsx
+│   ├── comments/
+│   │   ├── Comment.tsx
+│   │   ├── CommentForm.tsx
+│   │   └── CommentsSection.tsx
+│   └── ui/
+│       ├── buttons/
+│       ├── cards/
+│       ├── modals/
+│       └── skeletons/
+├── pages/
+│   ├── Home.tsx
+│   ├── Watch.tsx
+│   ├── Channel.tsx
+│   ├── SearchResults.tsx
+│   ├── Library.tsx
+│   ├── Trending.tsx
+│   └── Studio/
+│       ├── Upload.tsx
+│       ├── Dashboard.tsx
+│       └── Content.tsx
+├── hooks/
+│   ├── useVideoPlayer.ts
+│   ├── useInfiniteScroll.ts
+│   ├── useSearch.ts
+│   └── useDarkMode.ts
+└── stores/
+    ├── auth.store.ts
+    ├── video.store.ts
+    └── ui.store.ts
+UI/UX Specifications
+Colors (YouTube Theme)
+css
+/* Light Theme */
+--primary: #ffffff;
+--secondary: #f9f9f9;
+--text-primary: #0f0f0f;
+--text-secondary: #606060;
+--accent: #ff0000;
+
+/* Dark Theme */
+--dark-primary: #0f0f0f;
+--dark-secondary: #272727;
+--dark-text: #f1f1f1;
+--dark-text-secondary: #aaa;
+Responsive Breakpoints
+css
+/* Mobile-first approach */
+sm: 640px   /* Mobile */
+md: 768px   /* Tablet */
+lg: 1024px  /* Desktop */
+xl: 1280px  /* Large Desktop */
+Animations & Transitions
+Smooth transitions for theme switching
+
+Hover effects on video cards
+
+Loading skeletons for all async content
+
+Toast notifications for user actions
+
+Modal animations (slide up/fade)
+
+State Management
+typescript
+interface AppState {
+  auth: {
+    user: User | null;
+    subscriptions: Channel[];
+    history: Video[];
+  };
+  player: {
+    currentVideo: Video | null;
+    isPlaying: boolean;
+    volume: number;
+    playbackRate: number;
+    quality: string;
+    isTheaterMode: boolean;
+    isMiniPlayer: boolean;
+  };
+  ui: {
+    sidebarOpen: boolean;
+    theme: 'light' | 'dark';
+    searchQuery: string;
+    activeTab: string;
+  };
+}
+Mock Data Structure
+typescript
+interface Video {
+  id: string;
+  title: string;
+  description: string;
+  thumbnailUrl: string;
+  videoUrl: string;
+  duration: number;
+  channel: {
+    id: string;
+    name: string;
+    avatarUrl: string;
+    subscribers: number;
+  };
+  views: number;
+  likes: number;
+  dislikes: number;
+  uploadDate: string;
+  comments: number;
+  tags: string[];
+}
+API Integration Plan
+typescript
+// API endpoints to mock/implement
+const API = {
+  videos: {
+    getPopular: '/videos/popular',
+    getById: '/videos/:id',
+    search: '/videos/search',
+    getComments: '/videos/:id/comments',
+  },
+  channels: {
+    getById: '/channels/:id',
+    getVideos: '/channels/:id/videos',
+    subscribe: '/channels/:id/subscribe',
+  },
+  user: {
+    watchHistory: '/user/history',
+    watchLater: '/user/watch-later',
+    playlists: '/user/playlists',
+  }
+};
+Performance Optimizations
+Lazy Loading:
+
+Route-based code splitting
+
+Image lazy loading with blur placeholders
+
+Infinite scroll for comments/video lists
+
+Caching Strategy:
+
+React Query for server state
+
+Zustand for client state persistence
+
+LocalStorage for theme/preferences
+
+Bundle Optimization:
+
+Dynamic imports for heavy components
+
+Tree shaking with Vite
+
+Compression for production build
+
+Accessibility Features
+Keyboard Navigation: Full support for video controls
+
+Screen Reader: ARIA labels for all interactive elements
+
+Focus Management: Proper focus trapping in modals
+
+Color Contrast: WCAG 2.1 compliant
+
+Caption Support: Video player accessibility
+
+Testing Strategy
+Unit Tests: All utility functions and custom hooks
+
+Component Tests: Button, VideoCard, SearchBar
+
+Integration Tests: Video playback, Search functionality
+
+E2E Tests: User flow (search → play → comment)
+
+Additional Features (YouTube-like)
+Shorts (vertical short videos)
+
+Live Streaming with chat
+
+Community Posts on channel pages
+
+Membership Badges for subscribers
+
+Super Chat (live stream donations)
+
+YouTube Music integration
+
+Gaming section with live streams
+
+Trending page with regional content
+
+Deployment Ready
+Environment variables configuration
+
+Docker configuration (optional)
+
+CI/CD pipeline setup
+
+SEO optimization
+
+PWA manifest (optional)
+
+Success Criteria
+90+ Lighthouse score for performance
+
+Fully responsive on all devices
+
+Smooth 60fps animations
+
+Accessible to screen readers
+
+Offline capability for cached content
+
+Fast search with debounced API calls
+
