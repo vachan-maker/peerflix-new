@@ -51,6 +51,22 @@ export default function WatchNew() {
   const [accessCode, setAccessCode] = useState('');
   const [accessGranted, setAccessGranted] = useState(false);
   const [accessError, setAccessError] = useState('');
+  const [videoError, setVideoError] = useState<string | null>(null);
+
+  // Video error handler for debugging playback issues
+  const handleVideoError = (e: React.SyntheticEvent<HTMLVideoElement, Event>) => {
+    const videoEl = e.currentTarget;
+    const error = videoEl.error;
+    const errorMessages: Record<number, string> = {
+      1: 'Video loading aborted',
+      2: 'Network error - check if backend is running',
+      3: 'Video decoding failed',
+      4: 'Video format not supported',
+    };
+    const msg = error ? errorMessages[error.code] || error.message : 'Unknown error';
+    console.error('[PeerFlix] Video error:', error?.code, msg);
+    setVideoError(msg);
+  };
 
   // Check for access code in URL query parameter
   useEffect(() => {
@@ -363,7 +379,20 @@ export default function WatchNew() {
                   onPlay={() => setIsPlaying(true)}
                   onPause={() => setIsPlaying(false)}
                   onClick={handlePlayPause}
+                  onError={handleVideoError}
+                  crossOrigin="anonymous"
                 />
+
+                {/* Video Error Display */}
+                {videoError && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-red-900/90">
+                    <div className="text-center px-6">
+                      <p className="text-white text-lg font-semibold mb-2">Playback Error</p>
+                      <p className="text-red-200">{videoError}</p>
+                      <p className="text-red-300 text-sm mt-2">URL: {videoUrl}</p>
+                    </div>
+                  </div>
+                )}
 
                 {/* Play/Pause Overlay */}
                 {!isPlaying && (

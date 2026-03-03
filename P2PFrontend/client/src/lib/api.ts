@@ -24,6 +24,9 @@ const getBackendUrl = () => {
 const BACKEND_URL = getBackendUrl();
 const API_BASE_URL = `${BACKEND_URL}/api`;
 
+// Debug: Log backend URL to help diagnose connection issues
+console.log('[PeerFlix] Backend URL:', BACKEND_URL);
+
 // Export backend URL for other uses (thumbnails, video streaming)
 export { BACKEND_URL };
 

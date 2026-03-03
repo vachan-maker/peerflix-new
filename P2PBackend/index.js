@@ -47,9 +47,9 @@ const uploadLimiter = rateLimit({
 // Apply rate limiting
 app.use(generalLimiter);
 
-// Enable CORS for frontend
+// Enable CORS for frontend (allow all origins in development)
 app.use(cors({
-	origin: ['http://localhost:5000', 'http://localhost:5173', 'http://127.0.0.1:5000'],
+	origin: true,
 	credentials: true
 }));
 
