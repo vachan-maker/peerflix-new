@@ -11,6 +11,7 @@ import connectDB from './config/dbConnection.js';
 import Video from './models/videoModel.js';
 import { seedFile, shutdown as shutdownTorrent, getClientStats } from './utils/torrent.js';
 import { isPathUnderVideos } from './utils/pathUtils.js';
+import { initializeViewerTracking, shutdown as shutdownViewerTracking, getViewerStats } from './utils/viewerTracking.js';
 dotenv.config()
 const port = process.env.PORT || 3000;
 
@@ -194,6 +195,9 @@ async function initializeSeeding() {
 const server = app.listen(port, async () => {
 	console.log(`🚀 Server listening on port ${port}`);
 
+	// Initialize WebSocket viewer tracking
+	initializeViewerTracking(server);
+
 	// Initialize seeding after server starts
 	await initializeSeeding();
 });
@@ -206,6 +210,9 @@ process.on('SIGINT', async () => {
 	server.close(() => {
 		console.log('✅ HTTP server closed');
 	});
+
+	// Shutdown viewer tracking
+	await shutdownViewerTracking();
 
 	// Shutdown WebTorrent client
 	await shutdownTorrent();
@@ -221,8 +228,14 @@ process.on('SIGTERM', async () => {
 		console.log('✅ HTTP server closed');
 	});
 
+	// Shutdown viewer tracking
+	await shutdownViewerTracking();
+
 	// Shutdown WebTorrent client
 	await shutdownTorrent();
 
 	process.exit(0);
 });
+
+// Export getViewerStats for use in other modules
+export { getViewerStats };

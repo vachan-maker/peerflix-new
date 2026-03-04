@@ -1,5 +1,6 @@
 import { seedFile, getClientStats } from "../utils/torrent.js";
 import { generateThumbnail } from "../utils/thumbnail.js";
+import { getViewerStats, getVideoViewerCount } from "../utils/viewerTracking.js";
 import Video from "../models/videoModel.js";
 import path from "path";
 import { randomUUID } from "crypto";
@@ -227,10 +228,37 @@ const getMagnetUri = async (req, res) => {
 // Get seeding statistics
 const getStats = (req, res) => {
     try {
-        const stats = getClientStats();
+        const torrentStats = getClientStats();
+        const viewerStats = getViewerStats();
+        
+        // Combine torrent peers with active viewers
+        // Active viewers are shown as "peers" for the P2P network graph
+        const combinedStats = {
+            ...torrentStats,
+            // Add viewer counts to total peers (viewers watching = peers in the swarm)
+            totalPeers: torrentStats.totalPeers + viewerStats.totalViewers,
+            // Include viewer stats separately as well
+            activeViewers: viewerStats.totalViewers,
+            activeVideosBeingWatched: viewerStats.activeVideos,
+            viewersByVideo: viewerStats.videos,
+            // Enhance torrent stats with viewer counts per video
+            torrents: torrentStats.torrents.map(t => {
+                // Find matching viewer count for this torrent's video
+                const videoViewers = viewerStats.videos.find(v => 
+                    t.name && t.name.includes(v.videoId)
+                );
+                return {
+                    ...t,
+                    // Add viewers as additional "peers" 
+                    peers: t.peers + (videoViewers?.viewers || 0),
+                    viewers: videoViewers?.viewers || 0
+                };
+            })
+        };
+        
         res.status(200).json({
             success: true,
-            data: stats
+            data: combinedStats
         });
     } catch (error) {
         console.error("Error getting stats:", error);
