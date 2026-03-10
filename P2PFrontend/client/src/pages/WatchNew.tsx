@@ -31,6 +31,7 @@ import { fetchVideoById, fetchStats, fetchVideos, verifyAccessCode, type VideoFr
 import { cn } from '@/lib/utils';
 import { Logo } from '@/components/ui/Logo';
 import { P2PNetworkGraph } from '@/components/video/P2PNetworkGraph';
+import { useViewerTracking } from '@/hooks/useViewerTracking';
 
 export default function WatchNew() {
   const [, params] = useRoute('/watch/:id');
@@ -126,9 +127,23 @@ export default function WatchNew() {
     queryFn: fetchVideos,
   });
 
+  // Real-time viewer tracking via WebSocket
+  const viewerStats = useViewerTracking(videoId);
+
   const video = videoData?.data;
   const stats: StatsResponse | undefined = statsData;
   const related = relatedVideos?.data?.filter(v => v._id !== videoId).slice(0, 5) || [];
+
+  // Use real-time peers from viewer tracking, falling back to REST API stats
+  const realtimePeers = viewerStats.peers.length > 0 
+    ? viewerStats.peers 
+    : (stats?.data?.torrents?.flatMap(t => t.connectedPeers || []) || []);
+  const realtimeTotalPeers = viewerStats.totalPeers > 0 
+    ? viewerStats.totalPeers 
+    : (stats?.data?.totalPeers || 0);
+  const realtimeUploadSpeed = viewerStats.uploadSpeed > 0 
+    ? viewerStats.uploadSpeed 
+    : (stats?.data?.uploadSpeed || 0);
 
   // Hide controls after inactivity
   useEffect(() => {
@@ -642,6 +657,9 @@ export default function WatchNew() {
                       <h2 className="text-lg font-bold text-white flex items-center gap-2">
                         <Activity size={18} className="text-green-400" />
                         P2P Network
+                        {viewerStats.isConnected && (
+                          <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" title="Real-time connected" />
+                        )}
                       </h2>
                       <span className={cn(
                         "px-2 py-1 rounded-full text-xs font-medium",
@@ -656,8 +674,8 @@ export default function WatchNew() {
                   
                   <div className="h-[280px]">
                     <P2PNetworkGraph 
-                      peers={stats.data.torrents?.flatMap(t => t.connectedPeers || []) || []}
-                      totalPeers={stats.data.totalPeers || 0}
+                      peers={realtimePeers}
+                      totalPeers={realtimeTotalPeers}
                       isPlaying={isPlaying}
                     />
                   </div>
@@ -666,13 +684,13 @@ export default function WatchNew() {
                   <div className="grid grid-cols-2 gap-2 p-3 bg-black/20">
                     <div className="text-center">
                       <p className="text-lg font-bold text-white">
-                        {stats.data.totalPeers || 0}
+                        {realtimeTotalPeers}
                       </p>
                       <p className="text-[10px] text-gray-500">Connected Peers</p>
                     </div>
                     <div className="text-center">
                       <p className="text-lg font-bold text-green-400">
-                        {((stats.data.uploadSpeed || 0) / 1024).toFixed(1)} KB/s
+                        {(realtimeUploadSpeed / 1024).toFixed(1)} KB/s
                       </p>
                       <p className="text-[10px] text-gray-500">Upload Speed</p>
                     </div>
