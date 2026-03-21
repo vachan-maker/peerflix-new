@@ -12,7 +12,9 @@ interface ViewerStats {
   viewerCount: number;
   isConnected: boolean;
   uploadSpeed: number;
+  downloadSpeed: number;
   totalUploaded: number;
+  totalDownloaded: number;
   totalPeers: number;
   peers: PeerInfo[];
 }
@@ -27,7 +29,9 @@ export function useViewerTracking(videoId: string | null | undefined): ViewerSta
   const [viewerCount, setViewerCount] = useState(0);
   const [isConnected, setIsConnected] = useState(false);
   const [uploadSpeed, setUploadSpeed] = useState(0);
+  const [downloadSpeed, setDownloadSpeed] = useState(0);
   const [totalUploaded, setTotalUploaded] = useState(0);
+  const [totalDownloaded, setTotalDownloaded] = useState(0);
   const [totalPeers, setTotalPeers] = useState(0);
   const [peers, setPeers] = useState<PeerInfo[]>([]);
 
@@ -36,7 +40,7 @@ export function useViewerTracking(videoId: string | null | undefined): ViewerSta
 
     // Build WebSocket URL from backend URL
     const wsUrl = BACKEND_URL.replace(/^http/, 'ws') + '/ws/viewers';
-    
+
     try {
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
@@ -44,7 +48,7 @@ export function useViewerTracking(videoId: string | null | undefined): ViewerSta
       ws.onopen = () => {
         console.log('[ViewerTracking] Connected to viewer tracking');
         setIsConnected(true);
-        
+
         // Join the video room
         ws.send(JSON.stringify({
           type: 'join',
@@ -55,7 +59,7 @@ export function useViewerTracking(videoId: string | null | undefined): ViewerSta
       ws.onmessage = (event) => {
         try {
           const message = JSON.parse(event.data);
-          
+
           switch (message.type) {
             case 'viewerCount':
               if (message.videoId === videoId) {
@@ -68,18 +72,24 @@ export function useViewerTracking(videoId: string | null | undefined): ViewerSta
               if (videoStats) {
                 setViewerCount(videoStats.viewers);
               }
-              
+
               // Update torrent stats
               if (typeof message.uploadSpeed === 'number') {
                 setUploadSpeed(message.uploadSpeed);
               }
+              if (typeof message.downloadSpeed === 'number') {
+                setDownloadSpeed(message.downloadSpeed);
+              }
               if (typeof message.totalUploaded === 'number') {
                 setTotalUploaded(message.totalUploaded);
+              }
+              if (typeof message.totalDownloaded === 'number') {
+                setTotalDownloaded(message.totalDownloaded);
               }
               if (typeof message.totalPeers === 'number') {
                 setTotalPeers(message.totalPeers);
               }
-              
+
               // Build stable peer list from torrent data
               if (message.torrents && Array.isArray(message.torrents)) {
                 const allPeers: PeerInfo[] = [];
@@ -114,7 +124,7 @@ export function useViewerTracking(videoId: string | null | undefined): ViewerSta
         console.log('[ViewerTracking] Disconnected');
         setIsConnected(false);
         wsRef.current = null;
-        
+
         // Attempt to reconnect after 3 seconds
         reconnectTimeoutRef.current = setTimeout(() => {
           if (videoId) {
@@ -143,7 +153,7 @@ export function useViewerTracking(videoId: string | null | undefined): ViewerSta
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
       }
-      
+
       if (wsRef.current) {
         // Send leave message before closing
         if (wsRef.current.readyState === WebSocket.OPEN) {
@@ -166,5 +176,5 @@ export function useViewerTracking(videoId: string | null | undefined): ViewerSta
     return () => clearInterval(interval);
   }, []);
 
-  return { viewerCount, isConnected, uploadSpeed, totalUploaded, totalPeers, peers };
+  return { viewerCount, isConnected, uploadSpeed, downloadSpeed, totalUploaded, totalDownloaded, totalPeers, peers };
 }

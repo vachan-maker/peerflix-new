@@ -52,7 +52,7 @@ function seedFile(filePath) {
             torrent.on('wire', (wire, addr) => {
                 // Extract IP address (without port) to track unique peers only
                 const ip = addr.split(':')[0];
-                
+
                 // Only log if this is a new unique peer IP
                 if (!connectedPeerIPs.has(ip)) {
                     connectedPeerIPs.add(ip);
@@ -116,7 +116,9 @@ function getClientStats() {
         activeTorrents: activeTorrents.size,
         totalPeers: torrents.reduce((sum, t) => sum + t.numPeers, 0),
         totalUploaded: torrents.reduce((sum, t) => sum + t.uploaded, 0),
+        totalDownloaded: torrents.reduce((sum, t) => sum + t.downloaded, 0),
         uploadSpeed: torrents.reduce((sum, t) => sum + t.uploadSpeed, 0),
+        downloadSpeed: torrents.reduce((sum, t) => sum + t.downloadSpeed, 0),
         torrents: torrents.map(t => ({
             name: t.name,
             infoHash: t.infoHash,

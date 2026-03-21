@@ -1,4 +1,5 @@
 import { WebSocketServer } from 'ws';
+import { getClientStats } from './torrent.js';
 
 // Track active viewers per video: videoId -> Set of WebSocket connections
 const activeViewers = new Map();
@@ -15,12 +16,12 @@ let wss = null;
  */
 function initializeViewerTracking(server) {
     wss = new WebSocketServer({ server, path: '/ws/viewers' });
-    
+
     console.log('👁️  Viewer tracking WebSocket initialized on /ws/viewers');
-    
+
     wss.on('connection', (ws, req) => {
         console.log('🔗 New viewer connection established');
-        
+
         ws.on('message', (data) => {
             try {
                 const message = JSON.parse(data);
@@ -29,20 +30,20 @@ function initializeViewerTracking(server) {
                 console.error('Error parsing viewer message:', error);
             }
         });
-        
+
         ws.on('close', () => {
             handleDisconnect(ws);
         });
-        
+
         ws.on('error', (error) => {
             console.error('WebSocket error:', error);
             handleDisconnect(ws);
         });
-        
+
         // Send initial connection acknowledgment
         ws.send(JSON.stringify({ type: 'connected', message: 'Viewer tracking active' }));
     });
-    
+
     // Broadcast viewer counts periodically
     setInterval(() => {
         broadcastViewerCounts();
@@ -54,31 +55,31 @@ function initializeViewerTracking(server) {
  */
 function handleMessage(ws, message) {
     const { type, videoId } = message;
-    
+
     switch (type) {
         case 'join':
             // User started watching a video
             if (videoId) {
                 // Remove from previous video if switching
                 handleDisconnect(ws);
-                
+
                 // Add to new video
                 if (!activeViewers.has(videoId)) {
                     activeViewers.set(videoId, new Set());
                 }
                 activeViewers.get(videoId).add(ws);
                 connectionToVideo.set(ws, videoId);
-                
+
                 const viewerCount = activeViewers.get(videoId).size;
                 console.log(`👁️  Viewer joined video ${videoId} (${viewerCount} viewers)`);
-                
+
                 // Send current viewer count back
                 ws.send(JSON.stringify({
                     type: 'viewerCount',
                     videoId,
                     count: viewerCount
                 }));
-                
+
                 // Broadcast updated count to all viewers of this video
                 broadcastToVideo(videoId, {
                     type: 'viewerCount',
@@ -87,11 +88,11 @@ function handleMessage(ws, message) {
                 });
             }
             break;
-            
+
         case 'leave':
             handleDisconnect(ws);
             break;
-            
+
         case 'ping':
             ws.send(JSON.stringify({ type: 'pong' }));
             break;
@@ -103,13 +104,13 @@ function handleMessage(ws, message) {
  */
 function handleDisconnect(ws) {
     const videoId = connectionToVideo.get(ws);
-    
+
     if (videoId && activeViewers.has(videoId)) {
         activeViewers.get(videoId).delete(ws);
-        
+
         const remainingViewers = activeViewers.get(videoId).size;
         console.log(`👁️  Viewer left video ${videoId} (${remainingViewers} viewers remaining)`);
-        
+
         // Clean up empty sets
         if (remainingViewers === 0) {
             activeViewers.delete(videoId);
@@ -122,7 +123,7 @@ function handleDisconnect(ws) {
             });
         }
     }
-    
+
     connectionToVideo.delete(ws);
 }
 
@@ -146,13 +147,26 @@ function broadcastToVideo(videoId, message) {
  */
 function broadcastViewerCounts() {
     if (!wss) return;
-    
+
     const allCounts = getViewerStats();
+    let torrentStats = {};
+    try {
+        torrentStats = getClientStats();
+    } catch (e) {
+        // torrent client may not be ready yet
+    }
+
     const message = JSON.stringify({
         type: 'stats',
-        ...allCounts
+        ...allCounts,
+        uploadSpeed: torrentStats.uploadSpeed || 0,
+        downloadSpeed: torrentStats.downloadSpeed || 0,
+        totalUploaded: torrentStats.totalUploaded || 0,
+        totalDownloaded: torrentStats.totalDownloaded || 0,
+        totalPeers: torrentStats.totalPeers || 0,
+        torrents: torrentStats.torrents || []
     });
-    
+
     wss.clients.forEach(client => {
         if (client.readyState === client.OPEN) {
             client.send(message);
@@ -167,7 +181,7 @@ function broadcastViewerCounts() {
 function getViewerStats() {
     const videoStats = [];
     let totalViewers = 0;
-    
+
     activeViewers.forEach((viewers, videoId) => {
         const count = viewers.size;
         totalViewers += count;
@@ -176,7 +190,7 @@ function getViewerStats() {
             viewers: count
         });
     });
-    
+
     return {
         totalViewers,
         activeVideos: activeViewers.size,

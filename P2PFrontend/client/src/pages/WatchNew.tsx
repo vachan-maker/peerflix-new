@@ -87,7 +87,7 @@ export default function WatchNew() {
   // Auto-verify access code if it came from URL
   useEffect(() => {
     let mounted = true;
-    
+
     const verifyCode = async () => {
       try {
         const urlParams = new URLSearchParams(window.location.search);
@@ -143,6 +143,7 @@ export default function WatchNew() {
   const realtimeTotalPeers = viewerStats.totalPeers > 0
     ? viewerStats.totalPeers
     : (stats?.data?.totalPeers || 0);
+  // Real upload/download speeds: prefer WebSocket data, fall back to REST API, then peer aggregation
   const realtimeUploadSpeed = viewerStats.uploadSpeed > 0
     ? viewerStats.uploadSpeed
     : (stats?.data?.uploadSpeed || 0);
@@ -150,10 +151,21 @@ export default function WatchNew() {
   // Calculate global stats from peers
   const globalStats = aggregateGlobalStats(realtimePeers);
 
+  // Use best available stats for the network panel:
+  // Prefer direct stats from backend (most accurate), fall back to peer aggregation
+  const networkUploadSpeed = realtimeUploadSpeed || globalStats.totalUploadSpeed;
+  const networkDownloadSpeed = viewerStats.downloadSpeed > 0
+    ? viewerStats.downloadSpeed
+    : ((stats?.data?.downloadSpeed || 0) || globalStats.totalDownloadSpeed);
+  const networkTotalUploaded = viewerStats.totalUploaded > 0 ? viewerStats.totalUploaded : (stats?.data?.totalUploaded || globalStats.totalUploaded);
+  const networkTotalDownloaded = viewerStats.totalDownloaded > 0
+    ? viewerStats.totalDownloaded
+    : (stats?.data?.totalDownloaded || globalStats.totalDownloaded);
+
   // Hide controls after inactivity
   useEffect(() => {
     let timeout: NodeJS.Timeout | null = null;
-    
+
     const handleMouseMove = () => {
       setShowControls(true);
       if (timeout) clearTimeout(timeout);
@@ -270,10 +282,10 @@ export default function WatchNew() {
       setAccessError('Please enter an access code.');
       return;
     }
-    
+
     // Verify with the backend
     const result = await verifyAccessCode(videoId!, accessCode.trim());
-    
+
     if (result.success) {
       setAccessGranted(true);
       setAccessError('');
@@ -330,7 +342,7 @@ export default function WatchNew() {
       <main className="relative pt-16">
         <div className="max-w-[1800px] mx-auto">
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-0 xl:gap-6 p-4 xl:p-6">
-            
+
             {/* Video Player Section */}
             <div className="xl:col-span-2 space-y-4">
               {/* Private Video Access Prompt */}
@@ -345,7 +357,7 @@ export default function WatchNew() {
                     <p className="text-gray-400 mb-6">
                       This video is private. Enter the access code to watch and access the P2P stream.
                     </p>
-                    
+
                     <div className="space-y-4">
                       <div className="relative">
                         <Key size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" />
@@ -358,11 +370,11 @@ export default function WatchNew() {
                           className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-yellow-500/50 focus:ring-2 focus:ring-yellow-500/20"
                         />
                       </div>
-                      
+
                       {accessError && (
                         <p className="text-red-400 text-sm">{accessError}</p>
                       )}
-                      
+
                       <button
                         onClick={handleAccessCodeSubmit}
                         className="w-full py-3 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white font-semibold rounded-xl transition-all"
@@ -370,92 +382,92 @@ export default function WatchNew() {
                         Unlock Video
                       </button>
                     </div>
-                    
+
                     <p className="text-xs text-gray-500 mt-4">
                       Don't have the access code? Ask the video owner to share it with you.
                     </p>
                   </div>
                 </div>
               ) : (
-              /* Video Player */
-              <div
-                ref={playerRef}
-                className="relative bg-black rounded-2xl overflow-hidden group aspect-video"
-              >
-                {/* Private badge */}
-                {isPrivateVideo && (
-                  <div className="absolute top-4 left-4 z-10 px-3 py-1.5 bg-yellow-500/80 backdrop-blur-sm text-white text-xs font-bold rounded-full flex items-center gap-1.5">
-                    <Lock size={12} />
-                    Private
-                  </div>
-                )}
-
-                {/* Global Stats Panel - Top Right Overlay */}
-                {video.magnetURI && (
-                  <div className="absolute top-4 right-4 z-10">
-                    <GlobalStatsPanel
-                      totalUploadSpeed={globalStats.totalUploadSpeed || realtimeUploadSpeed}
-                      totalDownloadSpeed={globalStats.totalDownloadSpeed}
-                      totalUploaded={globalStats.totalUploaded}
-                      totalDownloaded={globalStats.totalDownloaded}
-                      activePeers={realtimeTotalPeers}
-                      variant="compact"
-                    />
-                  </div>
-                )}
-
-                <video
-                  ref={videoRef}
-                  src={videoUrl}
-                  className="w-full h-full object-contain"
-                  onTimeUpdate={handleTimeUpdate}
-                  onLoadedMetadata={handleLoadedMetadata}
-                  onPlay={() => setIsPlaying(true)}
-                  onPause={() => setIsPlaying(false)}
-                  onClick={handlePlayPause}
-                  onError={handleVideoError}
-                  crossOrigin="anonymous"
-                />
-
-                {/* Video Error Display */}
-                {videoError && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-red-900/90">
-                    <div className="text-center px-6">
-                      <p className="text-white text-lg font-semibold mb-2">Playback Error</p>
-                      <p className="text-red-200">{videoError}</p>
-                      <p className="text-red-300 text-sm mt-2">URL: {videoUrl}</p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Play/Pause Overlay */}
-                {!isPlaying && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                    <button
-                      onClick={handlePlayPause}
-                      className="w-20 h-20 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center border border-white/30 hover:bg-white/30 transition-all"
-                    >
-                      <Play className="w-8 h-8 text-white fill-white ml-1" />
-                    </button>
-                  </div>
-                )}
-
-                {/* Controls */}
+                /* Video Player */
                 <div
-                  className={cn(
-                    "absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-4 transition-opacity",
-                    showControls ? "opacity-100" : "opacity-0"
-                  )}
+                  ref={playerRef}
+                  className="relative bg-black rounded-2xl overflow-hidden group aspect-video"
                 >
-                  {/* Progress Bar */}
-                  <div className="mb-3">
-                    <input
-                      type="range"
-                      min={0}
-                      max={duration || 100}
-                      value={currentTime}
-                      onChange={handleSeek}
-                      className="w-full h-1 bg-white/20 rounded-full appearance-none cursor-pointer
+                  {/* Private badge */}
+                  {isPrivateVideo && (
+                    <div className="absolute top-4 left-4 z-10 px-3 py-1.5 bg-yellow-500/80 backdrop-blur-sm text-white text-xs font-bold rounded-full flex items-center gap-1.5">
+                      <Lock size={12} />
+                      Private
+                    </div>
+                  )}
+
+                  {/* Global Stats Panel - Top Right Overlay */}
+                  {video.magnetURI && (
+                    <div className="absolute top-4 right-4 z-10">
+                      <GlobalStatsPanel
+                        totalUploadSpeed={networkUploadSpeed}
+                        totalDownloadSpeed={networkDownloadSpeed}
+                        totalUploaded={networkTotalUploaded}
+                        totalDownloaded={networkTotalDownloaded}
+                        activePeers={realtimeTotalPeers}
+                        variant="compact"
+                      />
+                    </div>
+                  )}
+
+                  <video
+                    ref={videoRef}
+                    src={videoUrl}
+                    className="w-full h-full object-contain"
+                    onTimeUpdate={handleTimeUpdate}
+                    onLoadedMetadata={handleLoadedMetadata}
+                    onPlay={() => setIsPlaying(true)}
+                    onPause={() => setIsPlaying(false)}
+                    onClick={handlePlayPause}
+                    onError={handleVideoError}
+                    crossOrigin="anonymous"
+                  />
+
+                  {/* Video Error Display */}
+                  {videoError && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-red-900/90">
+                      <div className="text-center px-6">
+                        <p className="text-white text-lg font-semibold mb-2">Playback Error</p>
+                        <p className="text-red-200">{videoError}</p>
+                        <p className="text-red-300 text-sm mt-2">URL: {videoUrl}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Play/Pause Overlay */}
+                  {!isPlaying && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                      <button
+                        onClick={handlePlayPause}
+                        className="w-20 h-20 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center border border-white/30 hover:bg-white/30 transition-all"
+                      >
+                        <Play className="w-8 h-8 text-white fill-white ml-1" />
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Controls */}
+                  <div
+                    className={cn(
+                      "absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-4 transition-opacity",
+                      showControls ? "opacity-100" : "opacity-0"
+                    )}
+                  >
+                    {/* Progress Bar */}
+                    <div className="mb-3">
+                      <input
+                        type="range"
+                        min={0}
+                        max={duration || 100}
+                        value={currentTime}
+                        onChange={handleSeek}
+                        className="w-full h-1 bg-white/20 rounded-full appearance-none cursor-pointer
                         [&::-webkit-slider-thumb]:appearance-none
                         [&::-webkit-slider-thumb]:w-3
                         [&::-webkit-slider-thumb]:h-3
@@ -463,93 +475,94 @@ export default function WatchNew() {
                         [&::-webkit-slider-thumb]:bg-blue-500
                         [&::-webkit-slider-thumb]:cursor-pointer
                         [&::-webkit-slider-thumb]:shadow-lg"
-                      style={{
-                        background: `linear-gradient(to right, #3b82f6 ${(currentTime / (duration || 1)) * 100}%, rgba(255,255,255,0.2) ${(currentTime / (duration || 1)) * 100}%)`,
-                      }}
-                    />
-                  </div>
+                        style={{
+                          background: `linear-gradient(to right, #3b82f6 ${(currentTime / (duration || 1)) * 100}%, rgba(255,255,255,0.2) ${(currentTime / (duration || 1)) * 100}%)`,
+                        }}
+                      />
+                    </div>
 
-                  {/* Control Buttons */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <button
-                        onClick={handlePlayPause}
-                        className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-                      >
-                        {isPlaying ? (
-                          <Pause size={20} className="text-white" />
-                        ) : (
-                          <Play size={20} className="text-white fill-white" />
-                        )}
-                      </button>
-
-                      <button className="p-2 hover:bg-white/10 rounded-lg transition-colors">
-                        <SkipBack size={18} className="text-white" />
-                      </button>
-                      <button className="p-2 hover:bg-white/10 rounded-lg transition-colors">
-                        <SkipForward size={18} className="text-white" />
-                      </button>
-
-                      {/* Volume */}
-                      <div className="flex items-center gap-2 group/vol">
+                    {/* Control Buttons */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
                         <button
-                          onClick={toggleMute}
+                          onClick={handlePlayPause}
                           className="p-2 hover:bg-white/10 rounded-lg transition-colors"
                         >
-                          {isMuted || volume === 0 ? (
-                            <VolumeX size={20} className="text-white" />
+                          {isPlaying ? (
+                            <Pause size={20} className="text-white" />
                           ) : (
-                            <Volume2 size={20} className="text-white" />
+                            <Play size={20} className="text-white fill-white" />
                           )}
                         </button>
-                        <input
-                          type="range"
-                          min={0}
-                          max={1}
-                          step={0.1}
-                          value={isMuted ? 0 : volume}
-                          onChange={handleVolumeChange}
-                          className="w-20 h-1 bg-white/20 rounded-full appearance-none cursor-pointer opacity-0 group-hover/vol:opacity-100 transition-opacity
+
+                        <button className="p-2 hover:bg-white/10 rounded-lg transition-colors">
+                          <SkipBack size={18} className="text-white" />
+                        </button>
+                        <button className="p-2 hover:bg-white/10 rounded-lg transition-colors">
+                          <SkipForward size={18} className="text-white" />
+                        </button>
+
+                        {/* Volume */}
+                        <div className="flex items-center gap-2 group/vol">
+                          <button
+                            onClick={toggleMute}
+                            className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                          >
+                            {isMuted || volume === 0 ? (
+                              <VolumeX size={20} className="text-white" />
+                            ) : (
+                              <Volume2 size={20} className="text-white" />
+                            )}
+                          </button>
+                          <input
+                            type="range"
+                            min={0}
+                            max={1}
+                            step={0.1}
+                            value={isMuted ? 0 : volume}
+                            onChange={handleVolumeChange}
+                            className="w-20 h-1 bg-white/20 rounded-full appearance-none cursor-pointer opacity-0 group-hover/vol:opacity-100 transition-opacity
                             [&::-webkit-slider-thumb]:appearance-none
                             [&::-webkit-slider-thumb]:w-3
                             [&::-webkit-slider-thumb]:h-3
                             [&::-webkit-slider-thumb]:rounded-full
                             [&::-webkit-slider-thumb]:bg-white"
-                        />
+                          />
+                        </div>
+
+                        {/* Time */}
+                        <span className="text-sm text-gray-300">
+                          {formatTime(currentTime)} / {formatTime(duration)}
+                        </span>
                       </div>
 
-                      {/* Time */}
-                      <span className="text-sm text-gray-300">
-                        {formatTime(currentTime)} / {formatTime(duration)}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <button className="p-2 hover:bg-white/10 rounded-lg transition-colors">
-                        <Settings size={18} className="text-white" />
-                      </button>
-                      <button
-                        onClick={toggleFullscreen}
-                        className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-                      >
-                        {isFullscreen ? (
-                          <Minimize size={18} className="text-white" />
-                        ) : (
-                          <Maximize size={18} className="text-white" />
-                        )}
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button className="p-2 hover:bg-white/10 rounded-lg transition-colors">
+                          <Settings size={18} className="text-white" />
+                        </button>
+                        <button
+                          onClick={toggleFullscreen}
+                          className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                        >
+                          {isFullscreen ? (
+                            <Minimize size={18} className="text-white" />
+                          ) : (
+                            <Maximize size={18} className="text-white" />
+                          )}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
               )}
 
               {/* Expanded Global Stats Panel - Below Video Player */}
-              {video.magnetURI && realtimeTotalPeers > 0 && (
+              {video.magnetURI && stats?.data && (
                 <GlobalStatsPanel
-                  totalUploadSpeed={globalStats.totalUploadSpeed || realtimeUploadSpeed}
-                  totalDownloadSpeed={globalStats.totalDownloadSpeed}
-                  totalUploaded={viewerStats.totalUploaded}
+                  totalUploadSpeed={networkUploadSpeed}
+                  totalDownloadSpeed={networkDownloadSpeed}
+                  totalUploaded={networkTotalUploaded}
+                  totalDownloaded={networkTotalDownloaded}
                   activePeers={realtimeTotalPeers}
                   variant="expanded"
                 />
@@ -558,7 +571,7 @@ export default function WatchNew() {
               {/* Video Info */}
               <div className="bg-[#12121f]/80 backdrop-blur-xl border border-white/5 rounded-2xl p-4 sm:p-5">
                 <h1 className="text-xl sm:text-2xl font-bold text-white mb-3">{video.title}</h1>
-                
+
                 <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-400 mb-4">
                   <span className="flex items-center gap-1">
                     <Eye size={14} className="sm:w-4 sm:h-4" />
@@ -636,7 +649,7 @@ export default function WatchNew() {
                       <p className="text-xs text-gray-500">Real-time peer information</p>
                     </div>
                   </div>
-                  
+
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="bg-black/20 rounded-xl p-3 text-center">
                       <p className="text-xl font-bold text-white">{stats.data.totalPeers || 0}</p>
@@ -678,7 +691,7 @@ export default function WatchNew() {
                   </p>
                 </div>
               )}
-              
+
               {/* P2P Network Graph */}
               {video.magnetURI && stats?.data && !needsAccessCode && (
                 <div className="bg-[#12121f]/80 backdrop-blur-xl border border-white/5 rounded-2xl overflow-hidden">
@@ -693,17 +706,17 @@ export default function WatchNew() {
                       </h2>
                       <span className={cn(
                         "px-2 py-1 rounded-full text-xs font-medium",
-                        isPlaying 
-                          ? "bg-green-500/20 text-green-400 animate-pulse" 
+                        isPlaying
+                          ? "bg-green-500/20 text-green-400 animate-pulse"
                           : "bg-gray-500/20 text-gray-400"
                       )}>
                         {isPlaying ? 'Active' : 'Idle'}
                       </span>
                     </div>
                   </div>
-                  
+
                   <div className="h-[280px]">
-                    <P2PNetworkGraph 
+                    <P2PNetworkGraph
                       peers={realtimePeers}
                       totalPeers={realtimeTotalPeers}
                       isPlaying={isPlaying}

@@ -3,19 +3,19 @@
 const getBackendUrl = () => {
   // Check if running via ngrok or other tunnel (not localhost)
   const hostname = window.location.hostname;
-  
+
   // If accessed via ngrok or any non-localhost domain, use the backend URL from localStorage
   // This gets set when the user configures the tunnel
   const storedBackendUrl = localStorage.getItem('PEERFLIX_BACKEND_URL');
   if (storedBackendUrl) {
     return storedBackendUrl;
   }
-  
+
   // For localhost development, use the local backend
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
     return 'http://localhost:3000';
   }
-  
+
   // Fallback: assume backend is on same origin with /api prefix
   // This works if both are tunneled through same domain
   return window.location.origin.replace(/:\d+$/, ':3000');
@@ -81,7 +81,7 @@ export interface VideoFromAPI {
 export function transformVideo(video: Omit<VideoFromAPI, 'title' | 'thumbnail' | 'videoUrl'>): VideoFromAPI {
   // Build video streaming URL
   const videoUrl = `${BACKEND_URL}/stream/${video.videoId}`;
-  
+
   // Build thumbnail URL - try actual thumbnail first, fallback to video poster
   let thumbnail: string;
   if (video.thumbnailPath) {
@@ -91,7 +91,7 @@ export function transformVideo(video: Omit<VideoFromAPI, 'title' | 'thumbnail' |
     // Or use a placeholder with video title
     thumbnail = `https://placehold.co/640x360/1a1a2e/ffffff?text=${encodeURIComponent(video.originalFilename.replace(/\.[^/.]+$/, '').substring(0, 20))}`;
   }
-  
+
   return {
     ...video,
     title: video.originalFilename.replace(/\.[^/.]+$/, ''), // Remove file extension
@@ -137,6 +137,7 @@ export interface StatsResponse {
     totalDownloaded: number;
     totalPeers: number;
     uploadSpeed: number;
+    downloadSpeed: number;
     torrents: Array<{
       name: string;
       infoHash: string;
@@ -243,7 +244,7 @@ export function formatDate(dateString: string): string {
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  
+
   if (diffDays === 0) return 'Today';
   if (diffDays === 1) return 'Yesterday';
   if (diffDays < 7) return `${diffDays} days ago`;
@@ -271,14 +272,14 @@ export async function deleteVideo(id: string): Promise<{ success: boolean; messa
 }
 
 // Update video privacy settings
-export async function updateVideoPrivacy(id: string, isPrivate: boolean): Promise<{ 
-  success: boolean; 
+export async function updateVideoPrivacy(id: string, isPrivate: boolean): Promise<{
+  success: boolean;
   message: string;
-  data: { 
-    videoId: string; 
-    isPrivate: boolean; 
+  data: {
+    videoId: string;
+    isPrivate: boolean;
     accessCode: string | null;
-  } 
+  }
 }> {
   const response = await fetch(`${API_BASE_URL}/videos/${id}/privacy`, {
     method: 'PATCH',
@@ -298,8 +299,8 @@ export async function updateVideoPrivacy(id: string, isPrivate: boolean): Promis
 }
 
 // Verify access code for private video
-export async function verifyAccessCode(id: string, accessCode: string): Promise<{ 
-  success: boolean; 
+export async function verifyAccessCode(id: string, accessCode: string): Promise<{
+  success: boolean;
   magnetURI?: string;
   error?: string;
 }> {
