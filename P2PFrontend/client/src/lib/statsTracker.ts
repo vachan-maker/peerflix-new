@@ -27,7 +27,7 @@ export interface GlobalStats {
  * Format bytes to human-readable string
  */
 export function formatBytes(bytes: number): string {
-  if (bytes === 0) return '0 B';
+  if (!bytes || bytes === 0 || isNaN(bytes)) return '0 B';
   const k = 1024;
   const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
@@ -38,7 +38,7 @@ export function formatBytes(bytes: number): string {
  * Format bytes per second to human-readable speed string
  */
 export function formatSpeed(bytesPerSecond: number): string {
-  if (bytesPerSecond === 0) return '0 B/s';
+  if (!bytesPerSecond || bytesPerSecond === 0 || isNaN(bytesPerSecond)) return '0 B/s';
 
   const k = 1024;
   const sizes = ['B/s', 'KB/s', 'MB/s', 'GB/s'];
@@ -58,12 +58,22 @@ export function aggregateGlobalStats(peers: Array<{
   uploaded?: number;
   downloaded?: number;
 }>): GlobalStats {
+  if (!peers || !Array.isArray(peers) || peers.length === 0) {
+    return {
+      totalUploadSpeed: 0,
+      totalDownloadSpeed: 0,
+      totalUploaded: 0,
+      totalDownloaded: 0,
+      activePeers: 0,
+    };
+  }
+
   return peers.reduce(
     (acc, peer) => ({
-      totalUploadSpeed: acc.totalUploadSpeed + (peer.uploadSpeed || 0),
-      totalDownloadSpeed: acc.totalDownloadSpeed + (peer.downloadSpeed || 0),
-      totalUploaded: acc.totalUploaded + (peer.uploaded || 0),
-      totalDownloaded: acc.totalDownloaded + (peer.downloaded || 0),
+      totalUploadSpeed: acc.totalUploadSpeed + (peer?.uploadSpeed || 0),
+      totalDownloadSpeed: acc.totalDownloadSpeed + (peer?.downloadSpeed || 0),
+      totalUploaded: acc.totalUploaded + (peer?.uploaded || 0),
+      totalDownloaded: acc.totalDownloaded + (peer?.downloaded || 0),
       activePeers: acc.activePeers + 1,
     }),
     {
@@ -221,7 +231,8 @@ export class PeerStatsManager {
    */
   cleanStalePeers(maxAgeMs: number = 30000): void {
     const now = Date.now();
-    for (const [peerId, stats] of this.peerStats.entries()) {
+    const entries = Array.from(this.peerStats.entries());
+    for (const [peerId, stats] of entries) {
       if (now - stats.lastUpdate > maxAgeMs) {
         this.removePeer(peerId);
       }
