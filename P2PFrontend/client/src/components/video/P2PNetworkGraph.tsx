@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { cn } from '@/lib/utils';
+import { formatSpeed } from '@/lib/statsTracker';
 
 interface Peer {
   id: string;
@@ -11,6 +12,8 @@ interface Peer {
   type: 'you' | 'peer';
   uploadSpeed?: number;
   downloadSpeed?: number;
+  uploaded?: number;
+  downloaded?: number;
 }
 
 interface PeerData {
@@ -78,7 +81,7 @@ export function P2PNetworkGraph({ peers, totalPeers = 0, className, isPlaying = 
       // Position peers around the center
       const angle = (index / Math.max(effectivePeers.length, 1)) * Math.PI * 2 - Math.PI / 2;
       const radius = 70 + Math.random() * 30;
-      
+
       newNodes.push({
         id: peer.address || `peer-${index}`,
         address: peer.address || 'Unknown',
@@ -87,8 +90,10 @@ export function P2PNetworkGraph({ peers, totalPeers = 0, className, isPlaying = 
         vx: (Math.random() - 0.5) * 0.3,
         vy: (Math.random() - 0.5) * 0.3,
         type: 'peer',
-        uploadSpeed: peer.uploadSpeed,
-        downloadSpeed: peer.downloadSpeed
+        uploadSpeed: peer.uploadSpeed || 0,
+        downloadSpeed: peer.downloadSpeed || 0,
+        uploaded: peer.uploaded || 0,
+        downloaded: peer.downloaded || 0
       });
     });
 
@@ -227,24 +232,27 @@ export function P2PNetworkGraph({ peers, totalPeers = 0, className, isPlaying = 
     nodes.forEach(node => {
       const isCenter = node.type === 'you';
       const radius = isCenter ? 16 : 10;
-      
+
       // Glow effect
       const pulseAmount = isPlaying ? Math.sin(Date.now() / 300 + node.x * 0.1) * 3 : 0;
       const glowRadius = radius + 6 + pulseAmount;
-      
+
       const glow = ctx.createRadialGradient(
         node.x, node.y, radius * 0.5,
         node.x, node.y, glowRadius
       );
-      
+
       if (isCenter) {
         glow.addColorStop(0, 'rgba(100, 180, 255, 0.4)');
         glow.addColorStop(1, 'rgba(100, 180, 255, 0)');
       } else {
-        glow.addColorStop(0, 'rgba(200, 200, 100, 0.35)');
+        // Color intensity based on activity
+        const totalSpeed = (node.uploadSpeed || 0) + (node.downloadSpeed || 0);
+        const alpha = totalSpeed > 0 ? 0.5 : 0.35;
+        glow.addColorStop(0, `rgba(200, 200, 100, ${alpha})`);
         glow.addColorStop(1, 'rgba(200, 200, 100, 0)');
       }
-      
+
       ctx.beginPath();
       ctx.arc(node.x, node.y, glowRadius, 0, Math.PI * 2);
       ctx.fillStyle = glow;
@@ -261,20 +269,52 @@ export function P2PNetworkGraph({ peers, totalPeers = 0, className, isPlaying = 
       ctx.lineWidth = 2;
       ctx.stroke();
 
-      // Label
+      // Label (address)
       ctx.font = isCenter ? 'bold 11px Inter, system-ui, sans-serif' : '9px Inter, system-ui, sans-serif';
       ctx.fillStyle = '#ffffff';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      
+
       // Format address for display
       let label = node.address;
       if (!isCenter && label !== 'Unknown') {
         // Show abbreviated IP
         label = label.length > 13 ? label.substring(0, 13) : label;
       }
-      
+
       ctx.fillText(label, node.x, node.y - radius - 10);
+
+      // Display upload/download speeds for peer nodes
+      if (!isCenter) {
+        const uploadSpeed = node.uploadSpeed || 0;
+        const downloadSpeed = node.downloadSpeed || 0;
+
+        // Upload speed (green, above the node)
+        if (uploadSpeed > 0) {
+          ctx.font = 'bold 8px Inter, system-ui, sans-serif';
+          ctx.fillStyle = '#34d399'; // green
+          ctx.textAlign = 'center';
+          const uploadText = `↑ ${formatSpeed(uploadSpeed)}`;
+          ctx.fillText(uploadText, node.x, node.y + radius + 12);
+        }
+
+        // Download speed (blue, below upload)
+        if (downloadSpeed > 0) {
+          ctx.font = 'bold 8px Inter, system-ui, sans-serif';
+          ctx.fillStyle = '#60a5fa'; // blue
+          ctx.textAlign = 'center';
+          const downloadText = `↓ ${formatSpeed(downloadSpeed)}`;
+          ctx.fillText(downloadText, node.x, node.y + radius + (uploadSpeed > 0 ? 22 : 12));
+        }
+
+        // Show idle state if no activity
+        if (uploadSpeed === 0 && downloadSpeed === 0) {
+          ctx.font = '7px Inter, system-ui, sans-serif';
+          ctx.fillStyle = '#6b7280'; // gray
+          ctx.textAlign = 'center';
+          ctx.fillText('idle', node.x, node.y + radius + 12);
+        }
+      }
     });
 
     // Continue animation

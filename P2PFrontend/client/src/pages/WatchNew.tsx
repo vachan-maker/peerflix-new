@@ -31,7 +31,9 @@ import { fetchVideoById, fetchStats, fetchVideos, verifyAccessCode, type VideoFr
 import { cn } from '@/lib/utils';
 import { Logo } from '@/components/ui/Logo';
 import { P2PNetworkGraph } from '@/components/video/P2PNetworkGraph';
+import { GlobalStatsPanel } from '@/components/video/GlobalStatsPanel';
 import { useViewerTracking } from '@/hooks/useViewerTracking';
+import { aggregateGlobalStats } from '@/lib/statsTracker';
 
 export default function WatchNew() {
   const [, params] = useRoute('/watch/:id');
@@ -135,15 +137,18 @@ export default function WatchNew() {
   const related = relatedVideos?.data?.filter(v => v._id !== videoId).slice(0, 5) || [];
 
   // Use real-time peers from viewer tracking, falling back to REST API stats
-  const realtimePeers = viewerStats.peers.length > 0 
-    ? viewerStats.peers 
+  const realtimePeers = viewerStats.peers.length > 0
+    ? viewerStats.peers
     : (stats?.data?.torrents?.flatMap(t => t.connectedPeers || []) || []);
-  const realtimeTotalPeers = viewerStats.totalPeers > 0 
-    ? viewerStats.totalPeers 
+  const realtimeTotalPeers = viewerStats.totalPeers > 0
+    ? viewerStats.totalPeers
     : (stats?.data?.totalPeers || 0);
-  const realtimeUploadSpeed = viewerStats.uploadSpeed > 0 
-    ? viewerStats.uploadSpeed 
+  const realtimeUploadSpeed = viewerStats.uploadSpeed > 0
+    ? viewerStats.uploadSpeed
     : (stats?.data?.uploadSpeed || 0);
+
+  // Calculate global stats from peers
+  const globalStats = aggregateGlobalStats(realtimePeers);
 
   // Hide controls after inactivity
   useEffect(() => {
@@ -384,7 +389,21 @@ export default function WatchNew() {
                     Private
                   </div>
                 )}
-                
+
+                {/* Global Stats Panel - Top Right Overlay */}
+                {video.magnetURI && (
+                  <div className="absolute top-4 right-4 z-10">
+                    <GlobalStatsPanel
+                      totalUploadSpeed={globalStats.totalUploadSpeed || realtimeUploadSpeed}
+                      totalDownloadSpeed={globalStats.totalDownloadSpeed}
+                      totalUploaded={globalStats.totalUploaded}
+                      totalDownloaded={globalStats.totalDownloaded}
+                      activePeers={realtimeTotalPeers}
+                      variant="compact"
+                    />
+                  </div>
+                )}
+
                 <video
                   ref={videoRef}
                   src={videoUrl}
@@ -523,6 +542,17 @@ export default function WatchNew() {
                   </div>
                 </div>
               </div>
+              )}
+
+              {/* Expanded Global Stats Panel - Below Video Player */}
+              {video.magnetURI && realtimeTotalPeers > 0 && (
+                <GlobalStatsPanel
+                  totalUploadSpeed={globalStats.totalUploadSpeed || realtimeUploadSpeed}
+                  totalDownloadSpeed={globalStats.totalDownloadSpeed}
+                  totalUploaded={viewerStats.totalUploaded}
+                  activePeers={realtimeTotalPeers}
+                  variant="expanded"
+                />
               )}
 
               {/* Video Info */}
