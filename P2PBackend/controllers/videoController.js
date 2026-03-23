@@ -611,4 +611,84 @@ const incrementViewCount = async (req, res) => {
     }
 };
 
-export { uploadVideo, listVideos, getVideoById, getMagnetUri, getStats, deleteVideo, updatePrivacy, discoverAllVideos, searchVideos, getUploaderVideos, getTrendingVideos, incrementViewCount };
+// Like a video
+const likeVideo = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Find video by videoId first, then try MongoDB _id
+        let video = await Video.findOne({ videoId: id });
+
+        if (!video) {
+            video = await Video.findById(id).catch(() => null);
+        }
+
+        if (!video) {
+            return res.status(404).json({
+                success: false,
+                error: 'Video not found'
+            });
+        }
+
+        // Increment like count
+        video.likeCount = (video.likeCount || 0) + 1;
+        await video.save();
+
+        res.status(200).json({
+            success: true,
+            data: {
+                videoId: video.videoId,
+                likeCount: video.likeCount
+            }
+        });
+    } catch (error) {
+        console.error('Error liking video:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to like video',
+            details: error.message
+        });
+    }
+};
+
+// Unlike a video
+const unlikeVideo = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Find video by videoId first, then try MongoDB _id
+        let video = await Video.findOne({ videoId: id });
+
+        if (!video) {
+            video = await Video.findById(id).catch(() => null);
+        }
+
+        if (!video) {
+            return res.status(404).json({
+                success: false,
+                error: 'Video not found'
+            });
+        }
+
+        // Decrement like count (don't go below 0)
+        video.likeCount = Math.max(0, (video.likeCount || 0) - 1);
+        await video.save();
+
+        res.status(200).json({
+            success: true,
+            data: {
+                videoId: video.videoId,
+                likeCount: video.likeCount
+            }
+        });
+    } catch (error) {
+        console.error('Error unliking video:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to unlike video',
+            details: error.message
+        });
+    }
+};
+
+export { uploadVideo, listVideos, getVideoById, getMagnetUri, getStats, deleteVideo, updatePrivacy, discoverAllVideos, searchVideos, getUploaderVideos, getTrendingVideos, incrementViewCount, likeVideo, unlikeVideo };

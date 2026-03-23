@@ -62,6 +62,10 @@ const videoSchema = new mongoose.Schema({
         type: Number,
         default: 0, // Number of times video has been viewed
     },
+    likeCount: {
+        type: Number,
+        default: 0, // Number of likes
+    },
     seedCount: {
         type: Number,
         default: 0, // Number of active seeders

@@ -63,6 +63,7 @@ export interface VideoFromAPI {
   // UI statistics
   views?: number | string;
   likes?: number | string;
+  likeCount?: number;
   createdAt?: string;
   // Phase 2: P2P Discovery fields
   uploaderId?: string | null;
@@ -314,6 +315,54 @@ export async function verifyAccessCode(id: string, accessCode: string): Promise<
       success: false,
       error: error.error || 'Invalid access code'
     };
+  }
+
+  return response.json();
+}
+
+// Like a video
+export async function likeVideo(id: string): Promise<{
+  success: boolean;
+  data: {
+    videoId: string;
+    likeCount: number;
+  }
+}> {
+  const response = await fetch(`${API_BASE_URL}/videos/${id}/like`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to like video');
+  }
+
+  return response.json();
+}
+
+// Unlike a video
+export async function unlikeVideo(id: string): Promise<{
+  success: boolean;
+  data: {
+    videoId: string;
+    likeCount: number;
+  }
+}> {
+  const response = await fetch(`${API_BASE_URL}/videos/${id}/unlike`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to unlike video');
   }
 
   return response.json();

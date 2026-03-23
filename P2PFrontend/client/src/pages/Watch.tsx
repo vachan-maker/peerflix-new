@@ -5,7 +5,7 @@ import { Sidebar } from '@/components/layout/Sidebar';
 import { VideoCard } from '@/components/video/VideoCard';
 import { P2PStatusIndicator } from '@/components/video/P2PStatusIndicator';
 import { videos } from '@/lib/mockData';
-import { fetchVideoById, fetchVideos, VideoFromAPI, formatFileSize, formatDate } from '@/lib/api';
+import { fetchVideoById, fetchVideos, VideoFromAPI, formatFileSize, formatDate, likeVideo, unlikeVideo } from '@/lib/api';
 import { ThumbsUp, ThumbsDown, Share2, MoreHorizontal, Download, MessageSquare, Heart, Sparkles, Wifi, Copy, Check } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
@@ -39,6 +39,9 @@ export default function Watch() {
   const { id } = useParams();
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   const [magnetCopied, setMagnetCopied] = useState(false);
+  const [isLiked, setIsLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState<number>(0);
+  const [isLiking, setIsLiking] = useState(false);
   const { sidebarOpen } = useAppStore();
 
   // Try to fetch video from API first
@@ -70,6 +73,39 @@ export default function Watch() {
       navigator.clipboard.writeText(magnetUri);
       setMagnetCopied(true);
       setTimeout(() => setMagnetCopied(false), 2000);
+    }
+  };
+
+  // Initialize like count when video data changes
+  useEffect(() => {
+    if (apiVideo?.data?.likeCount !== undefined) {
+      setLikeCount(apiVideo.data.likeCount);
+    } else if (video) {
+      setLikeCount(parseInt(video.likes) || 0);
+    }
+  }, [apiVideo, video]);
+
+  // Handle like/unlike
+  const handleLike = async () => {
+    if (!id || isLiking) return;
+
+    setIsLiking(true);
+    try {
+      if (isLiked) {
+        // Unlike the video
+        const response = await unlikeVideo(id);
+        setLikeCount(response.data.likeCount);
+        setIsLiked(false);
+      } else {
+        // Like the video
+        const response = await likeVideo(id);
+        setLikeCount(response.data.likeCount);
+        setIsLiked(true);
+      }
+    } catch (error) {
+      console.error('Error toggling like:', error);
+    } finally {
+      setIsLiking(false);
     }
   };
 
@@ -135,9 +171,20 @@ export default function Watch() {
 
                 <div className="flex items-center gap-3 overflow-x-auto no-scrollbar pb-1">
                   <div className="flex items-center border-2 border-black dark:border-white rounded-md overflow-hidden bg-background shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] dark:shadow-[3px_3px_0px_0px_rgba(255,255,255,1)]">
-                    <button className="flex items-center gap-2 px-4 py-2 hover:bg-accent transition-colors border-r-2 border-black dark:border-white">
-                      <ThumbsUp size={18} strokeWidth={2.5} />
-                      <span className="text-sm font-bold">{video.likes}</span>
+                    <button
+                      onClick={handleLike}
+                      disabled={isLiking}
+                      className={cn(
+                        "flex items-center gap-2 px-4 py-2 transition-colors border-r-2 border-black dark:border-white",
+                        isLiked ? "bg-primary text-black hover:bg-primary/80" : "hover:bg-accent"
+                      )}
+                    >
+                      <ThumbsUp
+                        size={18}
+                        strokeWidth={2.5}
+                        fill={isLiked ? "currentColor" : "none"}
+                      />
+                      <span className="text-sm font-bold">{likeCount}</span>
                     </button>
                     <button className="px-4 py-2 hover:bg-destructive hover:text-white transition-colors">
                       <ThumbsDown size={18} strokeWidth={2.5} />

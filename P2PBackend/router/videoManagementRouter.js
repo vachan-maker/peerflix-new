@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { upload } from "../config/multerConfig.js";
-import { uploadVideo, listVideos, getVideoById, getMagnetUri, getStats, deleteVideo, updatePrivacy, discoverAllVideos, searchVideos, getUploaderVideos, getTrendingVideos, incrementViewCount } from "../controllers/videoController.js";
+import { uploadVideo, listVideos, getVideoById, getMagnetUri, getStats, deleteVideo, updatePrivacy, discoverAllVideos, searchVideos, getUploaderVideos, getTrendingVideos, incrementViewCount, likeVideo, unlikeVideo } from "../controllers/videoController.js";
 import { requireAuth } from "../middleware/auth.js";
 import { 
   validateVideoId, 
@@ -18,6 +18,10 @@ vidRouter.post('/upload', validateUpload, requireAuth, upload.single('video'), u
 
 // POST route to increment view count (validated)
 vidRouter.post('/:id/view', validateViewIncrement, incrementViewCount);
+
+// POST routes for like/unlike (validated)
+vidRouter.post('/:id/like', validateVideoId, likeVideo);
+vidRouter.post('/:id/unlike', validateVideoId, unlikeVideo);
 
 // DISCOVERY ROUTES (Phase 2) - with validation
 vidRouter.get('/discover/all', discoverAllVideos);     
