@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Menu, Search, ShoppingCart, Bell, Upload, Globe } from 'lucide-react';
+import { Menu, Search, Upload, Globe } from 'lucide-react';
 import { useAppStore } from '@/stores/useAppStore';
 import { Link } from 'wouter';
 import { currentUser } from '@/lib/mockData';
@@ -86,18 +86,6 @@ export function HeaderNew({ onMenuClick, onUploadClick, onTunnelConfigClick }: H
           <Upload size={20} />
         </button>
 
-        <button className="relative p-2.5 hover:bg-white/10 rounded-xl transition-all text-gray-400 hover:text-white">
-          <ShoppingCart size={20} />
-          <span className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-gradient-to-r from-blue-500 to-purple-500 text-white text-[10px] font-bold flex items-center justify-center rounded-full">
-            2
-          </span>
-        </button>
-        
-        <button className="relative p-2.5 hover:bg-white/10 rounded-xl transition-all text-gray-400 hover:text-white">
-          <Bell size={20} />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
-        </button>
-        
         <button className="ml-1 lg:ml-2 w-9 h-9 lg:w-10 lg:h-10 rounded-xl overflow-hidden ring-2 ring-white/10 hover:ring-blue-500/50 transition-all">
           <img src={currentUser.avatarUrl} alt="User" className="w-full h-full object-cover" />
         </button>
