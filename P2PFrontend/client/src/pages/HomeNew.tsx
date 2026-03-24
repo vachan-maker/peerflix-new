@@ -1,18 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { 
-  Play, 
-  ShoppingCart, 
-  Heart, 
-  Eye, 
-  Users, 
-  Wifi, 
+import {
+  Play,
+  ShoppingCart,
+  Heart,
+  Eye,
+  Users,
+  Wifi,
   WifiOff,
-  ChevronDown,
-  Gamepad2,
-  Trophy,
-  Zap,
-  Star,
   Plus,
   Upload,
   Trash2,
@@ -22,7 +17,8 @@ import {
   Copy,
   Check,
   Link2,
-  Clock
+  Clock,
+  Zap
 } from 'lucide-react';
 import { HeaderNew } from '@/components/layout/HeaderNew';
 import { SidebarNew } from '@/components/layout/SidebarNew';
@@ -31,21 +27,11 @@ import { UploadModalNew } from '@/components/video/UploadModalNew';
 import { TunnelConfig } from '@/components/TunnelConfig';
 import { cn } from '@/lib/utils';
 
-// Category badges
-const categories = [
-  { name: 'All Games', icon: Gamepad2 },
-  { name: 'Action', icon: Zap },
-  { name: 'Adventure', icon: Trophy },
-  { name: 'Racing', icon: Star },
-  { name: 'Sports', icon: Users },
-];
-
 export default function HomeNew() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState<VideoFromAPI | null>(null);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [tunnelConfigOpen, setTunnelConfigOpen] = useState(false);
-  const [activeCategory, setActiveCategory] = useState('All Games');
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const queryClient = useQueryClient();
 
@@ -176,30 +162,6 @@ export default function HomeNew() {
               <Upload size={18} />
               <span className="hidden md:inline">Upload Video</span>
               <span className="md:hidden">Upload</span>
-            </button>
-          </div>
-
-          {/* Categories */}
-          <div className="flex items-center gap-2 sm:gap-3 mb-6 sm:mb-8 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0">
-            {categories.map((cat) => (
-              <button
-                key={cat.name}
-                onClick={() => setActiveCategory(cat.name)}
-                className={cn(
-                  "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all",
-                  activeCategory === cat.name
-                    ? "bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg shadow-blue-500/20"
-                    : "bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white border border-white/5"
-                )}
-              >
-                <cat.icon size={16} />
-                {cat.name}
-              </button>
-            ))}
-            
-            <button className="flex items-center gap-2 px-4 py-2 bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white rounded-xl text-sm font-medium border border-white/5 transition-all">
-              More
-              <ChevronDown size={14} />
             </button>
           </div>
 
