@@ -367,3 +367,57 @@ export async function unlikeVideo(id: string): Promise<{
 
   return response.json();
 }
+
+// Auth types
+export interface AuthResponse {
+  success: boolean;
+  user?: {
+    id: string;
+    username: string;
+    isAdmin: boolean;
+  };
+  error?: string;
+}
+
+// Auth API functions
+export async function register(
+  username: string,
+  password: string
+): Promise<AuthResponse> {
+  const response = await fetch(`${API_BASE_URL}/auth/register`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ username, password }),
+  });
+  return response.json();
+}
+
+export async function login(
+  username: string,
+  password: string
+): Promise<AuthResponse> {
+  const response = await fetch(`${API_BASE_URL}/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ username, password }),
+  });
+  return response.json();
+}
+
+export async function logout(): Promise<{ success: boolean; message?: string }> {
+  const response = await fetch(`${API_BASE_URL}/auth/logout`, {
+    method: "POST",
+    credentials: "include",
+  });
+  return response.json();
+}
+
+export async function getCurrentUser(): Promise<AuthResponse> {
+  const response = await fetch(`${API_BASE_URL}/auth/me`, {
+    credentials: "include",
+  });
+  if (!response.ok) return { success: false };
+  return response.json();
+}

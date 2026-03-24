@@ -1,25 +1,38 @@
 import { useState } from 'react';
-import { Menu, Search, Upload, Globe } from 'lucide-react';
+import { Menu, Search, Upload, User, LogOut, Settings } from 'lucide-react';
 import { useAppStore } from '@/stores/useAppStore';
-import { Link } from 'wouter';
-import { currentUser } from '@/lib/mockData';
+import { useAuthStore } from '@/stores/useAuthStore';
+import { Link, useLocation } from 'wouter';
 import { Logo } from '@/components/ui/Logo';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface HeaderNewProps {
   onMenuClick: () => void;
   onUploadClick: () => void;
-  onTunnelConfigClick?: () => void;
 }
 
-export function HeaderNew({ onMenuClick, onUploadClick, onTunnelConfigClick }: HeaderNewProps) {
+export function HeaderNew({ onMenuClick, onUploadClick }: HeaderNewProps) {
   const { searchQuery, setSearchQuery } = useAppStore();
+  const { user, isAuthenticated, logout } = useAuthStore();
+  const [, setLocation] = useLocation();
   const [localSearch, setLocalSearch] = useState(searchQuery);
-  
-  const isRemoteAccess = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     setSearchQuery(localSearch);
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    setLocation('/login');
   };
 
   return (
@@ -54,41 +67,77 @@ export function HeaderNew({ onMenuClick, onUploadClick, onTunnelConfigClick }: H
 
       {/* Right Icons */}
       <div className="flex items-center gap-1 lg:gap-2">
-        {/* Remote Access Indicator */}
-        {onTunnelConfigClick && (
-          <button 
-            onClick={onTunnelConfigClick}
-            className={`p-2.5 rounded-xl transition-all ${
-              isRemoteAccess 
-                ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30' 
-                : 'hover:bg-white/10 text-gray-400 hover:text-white'
-            }`}
-            title={isRemoteAccess ? 'Remote Access Active' : 'Configure Remote Access'}
-          >
-            <Globe size={20} />
-          </button>
-        )}
-
         {/* Upload Button - Desktop */}
-        <button 
+        <button
           onClick={onUploadClick}
           className="hidden lg:flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white text-sm font-semibold rounded-xl shadow-lg shadow-blue-500/20 transition-all"
         >
           <Upload size={16} />
           Upload
         </button>
-        
+
         {/* Upload Button - Mobile */}
-        <button 
+        <button
           onClick={onUploadClick}
           className="lg:hidden p-2.5 hover:bg-white/10 rounded-xl transition-all text-gray-400 hover:text-white"
         >
           <Upload size={20} />
         </button>
 
-        <button className="ml-1 lg:ml-2 w-9 h-9 lg:w-10 lg:h-10 rounded-xl overflow-hidden ring-2 ring-white/10 hover:ring-blue-500/50 transition-all">
-          <img src={currentUser.avatarUrl} alt="User" className="w-full h-full object-cover" />
-        </button>
+        {/* Auth UI */}
+        {isAuthenticated && user ? (
+          /* User Dropdown */
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="ml-1 lg:ml-2 flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-white/10 transition-all">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center">
+                  <User size={16} className="text-white" />
+                </div>
+                <span className="hidden lg:inline text-sm font-medium text-white">
+                  {user.username}
+                </span>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48 bg-[#12121f] border-white/10">
+              <DropdownMenuLabel className="text-white">
+                My Account
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator className="bg-white/10" />
+              <DropdownMenuItem
+                disabled
+                className="text-gray-400 cursor-not-allowed focus:bg-white/5"
+              >
+                <Settings className="mr-2 h-4 w-4" />
+                <span>Settings</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator className="bg-white/10" />
+              <DropdownMenuItem
+                onClick={handleLogout}
+                className="text-red-400 focus:bg-white/5 focus:text-red-300 cursor-pointer"
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Log out</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : (
+          /* Login/Signup Buttons */
+          <>
+            <Link href="/login">
+              <Button
+                variant="ghost"
+                className="hidden lg:inline-flex text-gray-300 hover:text-white hover:bg-white/10"
+              >
+                Log In
+              </Button>
+            </Link>
+            <Link href="/signup">
+              <Button className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 rounded-xl shadow-lg shadow-blue-500/20">
+                Sign Up
+              </Button>
+            </Link>
+          </>
+        )}
       </div>
     </header>
   );

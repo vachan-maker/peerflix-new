@@ -6,6 +6,7 @@ import path from 'path';
 import fs from 'fs';
 import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
+import authRouter from './router/authRouter.js';
 import vidRouter from './router/videoManagementRouter.js';
 import connectDB from './config/dbConnection.js';
 import Video from './models/videoModel.js';
@@ -127,6 +128,9 @@ app.get('/stream/:videoId', async (req, res) => {
 
 // Apply stricter rate limiting to upload endpoint specifically
 app.use('/api/videos/upload', uploadLimiter);
+
+// Auth routes (register before video routes)
+app.use('/api/auth', authRouter);
 
 app.use('/api/videos', vidRouter);
 
