@@ -84,7 +84,7 @@ export function P2PNetworkGraph({ peers, totalPeers = 0, className, isPlaying = 
 
       newNodes.push({
         id: peer.address || `peer-${index}`,
-        address: peer.address || 'Unknown',
+        address: `Peer${index + 1}`, // Display as Peer1, Peer2, etc.
         x: centerX + Math.cos(angle) * radius + (Math.random() - 0.5) * 20,
         y: centerY + Math.sin(angle) * radius + (Math.random() - 0.5) * 20,
         vx: (Math.random() - 0.5) * 0.3,
@@ -269,20 +269,14 @@ export function P2PNetworkGraph({ peers, totalPeers = 0, className, isPlaying = 
       ctx.lineWidth = 2;
       ctx.stroke();
 
-      // Label (address)
+      // Label (peer identifier)
       ctx.font = isCenter ? 'bold 11px Inter, system-ui, sans-serif' : '9px Inter, system-ui, sans-serif';
       ctx.fillStyle = '#ffffff';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
 
-      // Format address for display
-      let label = node.address;
-      if (!isCenter && label !== 'Unknown') {
-        // Show abbreviated IP
-        label = label.length > 13 ? label.substring(0, 13) : label;
-      }
-
-      ctx.fillText(label, node.x, node.y - radius - 10);
+      // Display peer identifier (e.g., "You", "Peer1", "Peer2")
+      ctx.fillText(node.address, node.x, node.y - radius - 10);
 
       // Display upload/download speeds for peer nodes
       if (!isCenter) {
