@@ -58,7 +58,7 @@ userSchema.methods.generateAuthToken = function () {
     isAdmin: this.isAdmin,
   };
 
-  const secret = process.env.JWT_SECRET || "fallback-secret-please-set-in-env";
+  const secret = process.env.JWT_SECRET || 'dev_jwt_secret';
   const options = {
     expiresIn: "7d", // Token expires in 7 days
   };

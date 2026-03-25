@@ -1,7 +1,5 @@
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dev_jwt_secret';
-
 export function requireAuth(req, res, next) {
   try {
     // Try to get token from Authorization header first (backward compatibility)
@@ -44,6 +42,7 @@ export function requireAuth(req, res, next) {
       return res.status(401).json({ success: false, error: 'Authentication required' });
     }
 
+    const JWT_SECRET = process.env.JWT_SECRET || 'dev_jwt_secret';
     const payload = jwt.verify(token, JWT_SECRET);
 
     // Normalize payload into req.user
