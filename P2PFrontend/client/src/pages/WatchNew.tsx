@@ -682,18 +682,12 @@ export default function WatchNew() {
                   </div>
 
                   {/* Stats below graph */}
-                  <div className="grid grid-cols-2 gap-2 p-3 bg-black/20">
+                  <div className="grid grid-cols-1 gap-2 p-3 bg-black/20">
                     <div className="text-center">
                       <p className="text-lg font-bold text-white">
                         {realtimeTotalPeers}
                       </p>
                       <p className="text-[10px] text-gray-500">Connected Peers</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-lg font-bold text-green-400">
-                        {(realtimeUploadSpeed / 1024).toFixed(1)} KB/s
-                      </p>
-                      <p className="text-[10px] text-gray-500">Upload Speed</p>
                     </div>
                   </div>
                 </div>
