@@ -556,17 +556,7 @@ export default function WatchNew() {
                 </div>
               )}
 
-              {/* Expanded Global Stats Panel - Below Video Player */}
-              {video.magnetURI && stats?.data && (
-                <GlobalStatsPanel
-                  totalUploadSpeed={networkUploadSpeed}
-                  totalDownloadSpeed={networkDownloadSpeed}
-                  totalUploaded={networkTotalUploaded}
-                  totalDownloaded={networkTotalDownloaded}
-                  activePeers={realtimeTotalPeers}
-                  variant="expanded"
-                />
-              )}
+
 
               {/* Video Info */}
               <div className="bg-[#12121f]/80 backdrop-blur-xl border border-white/5 rounded-2xl p-4 sm:p-5">
@@ -637,39 +627,7 @@ export default function WatchNew() {
                 </div>
               </div>
 
-              {/* P2P Info Card */}
-              {video.magnetURI && stats?.data && (
-                <div className="bg-gradient-to-r from-green-500/10 to-blue-500/10 border border-green-500/20 rounded-2xl p-5">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 bg-green-500/20 rounded-xl flex items-center justify-center">
-                      <Wifi size={20} className="text-green-400" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-white">P2P Network Stats</h3>
-                      <p className="text-xs text-gray-500">Real-time peer information</p>
-                    </div>
-                  </div>
 
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="bg-black/20 rounded-xl p-3 text-center">
-                      <p className="text-xl font-bold text-white">{stats.data.totalPeers || 0}</p>
-                      <p className="text-xs text-gray-500">Active Peers</p>
-                    </div>
-                    <div className="bg-black/20 rounded-xl p-3 text-center">
-                      <p className="text-xl font-bold text-white">{stats.data.activeTorrents || 0}</p>
-                      <p className="text-xs text-gray-500">Total Torrents</p>
-                    </div>
-                    <div className="bg-black/20 rounded-xl p-3 text-center">
-                      <p className="text-xl font-bold text-green-400">{((stats.data.totalUploaded || 0) / 1024 / 1024).toFixed(1)} MB</p>
-                      <p className="text-xs text-gray-500">Uploaded</p>
-                    </div>
-                    <div className="bg-black/20 rounded-xl p-3 text-center">
-                      <p className="text-xl font-bold text-blue-400">{((stats.data.uploadSpeed || 0) / 1024).toFixed(1)} KB/s</p>
-                      <p className="text-xs text-gray-500">Upload Speed</p>
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
 
             {/* Related Videos Sidebar */}
