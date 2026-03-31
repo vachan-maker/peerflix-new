@@ -1,27 +1,10 @@
 // API configuration
-// Dynamically determine backend URL based on environment
-const getBackendUrl = () => {
-  // Check if running via ngrok or other tunnel (not localhost)
-  const hostname = window.location.hostname;
+// Uses VITE_BACKEND_URL environment variable at build time.
+//   - Local dev  : not set → falls back to http://localhost:3000
+//   - Vercel prod: set to https://peerflix-backend.vercel.app via .env.production
+const BACKEND_URL: string =
+  (import.meta.env.VITE_BACKEND_URL as string | undefined) ?? 'http://localhost:3000';
 
-  // If accessed via ngrok or any non-localhost domain, use the backend URL from localStorage
-  // This gets set when the user configures the tunnel
-  const storedBackendUrl = localStorage.getItem('PEERFLIX_BACKEND_URL');
-  if (storedBackendUrl) {
-    return storedBackendUrl;
-  }
-
-  // For localhost development, use the local backend
-  if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    return 'http://localhost:3000';
-  }
-
-  // Fallback: assume backend is on same origin with /api prefix
-  // This works if both are tunneled through same domain
-  return window.location.origin.replace(/:\d+$/, ':3000');
-};
-
-const BACKEND_URL = getBackendUrl();
 const API_BASE_URL = `${BACKEND_URL}/api`;
 
 // Debug: Log backend URL to help diagnose connection issues
