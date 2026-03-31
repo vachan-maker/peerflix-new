@@ -26,6 +26,9 @@ interface ViewerStats {
 export function useViewerTracking(videoId: string | null | undefined): ViewerStats {
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // Must be declared before connect so the onclose closure can reference it.
+  const isMountedRef = useRef(true);
+
   const [viewerCount, setViewerCount] = useState(0);
   const [isConnected, setIsConnected] = useState(false);
   const [uploadSpeed, setUploadSpeed] = useState(0);
@@ -36,7 +39,7 @@ export function useViewerTracking(videoId: string | null | undefined): ViewerSta
   const [peers, setPeers] = useState<PeerInfo[]>([]);
 
   const connect = useCallback(() => {
-    if (!videoId) return;
+    if (!videoId || !isMountedRef.current) return;
 
     // Build WebSocket URL from backend URL
     const wsUrl = BACKEND_URL.replace(/^http/, 'ws') + '/ws/viewers';
@@ -125,12 +128,17 @@ export function useViewerTracking(videoId: string | null | undefined): ViewerSta
         setIsConnected(false);
         wsRef.current = null;
 
-        // Attempt to reconnect after 3 seconds
-        reconnectTimeoutRef.current = setTimeout(() => {
-          if (videoId) {
-            connect();
-          }
-        }, 3000);
+        // isMountedRef is set to false BEFORE ws.close() is called in the
+        // cleanup, so by the time this async event fires we can reliably
+        // detect that the component has unmounted and skip reconnecting.
+        // Without this guard, the onclose callback scheduled a new connect()
+        // even after the user navigated away, creating a ghost viewer that
+        // was never cleaned up.
+        if (isMountedRef.current && videoId) {
+          reconnectTimeoutRef.current = setTimeout(() => {
+            if (isMountedRef.current) connect();
+          }, 3000);
+        }
       };
 
       ws.onerror = (error) => {
@@ -144,18 +152,25 @@ export function useViewerTracking(videoId: string | null | undefined): ViewerSta
 
   // Connect when videoId changes
   useEffect(() => {
+    isMountedRef.current = true;
+
     if (videoId) {
       connect();
     }
 
     return () => {
-      // Clean up on unmount or videoId change
+      // Mark unmounted FIRST — the async ws.onclose handler reads this flag
+      // to decide whether to schedule a reconnect. If we closed the socket
+      // first, onclose could fire before this line and still reconnect.
+      isMountedRef.current = false;
+
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
       }
 
       if (wsRef.current) {
-        // Send leave message before closing
+        // Tell the backend this viewer is leaving so it updates the count immediately
         if (wsRef.current.readyState === WebSocket.OPEN) {
           wsRef.current.send(JSON.stringify({ type: 'leave' }));
         }
