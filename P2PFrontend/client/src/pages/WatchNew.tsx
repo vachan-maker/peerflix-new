@@ -704,15 +704,15 @@ export default function WatchNew() {
                     related.map((vid) => (
                       <Link key={vid._id} href={`/watch/${vid.videoId}`}>
                         <div className="flex gap-3 p-2 rounded-xl hover:bg-white/5 cursor-pointer transition-all group">
-                          <div className="relative w-32 aspect-video rounded-lg overflow-hidden flex-shrink-0">
-                            <video
-                              src={vid.videoUrl}
+                          <div className="relative w-32 aspect-video rounded-lg overflow-hidden flex-shrink-0 bg-black">
+                            <img
+                              src={vid.thumbnail}
+                              alt={vid.title}
                               className="w-full h-full object-cover"
-                              muted
-                              preload="metadata"
-                              onLoadedData={(e) => {
-                                const v = e.target as HTMLVideoElement;
-                                v.currentTime = 1;
+                              onError={(e) => {
+                                // Silently fall back to a dark placeholder — never throw a MediaError
+                                (e.currentTarget as HTMLImageElement).src =
+                                  `https://placehold.co/320x180/0a0a14/444444?text=No+Preview`;
                               }}
                             />
                             <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
