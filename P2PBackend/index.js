@@ -14,6 +14,18 @@ import { seedFile, shutdown as shutdownTorrent, getClientStats } from './utils/t
 import { isPathUnderVideos } from './utils/pathUtils.js';
 import { initializeViewerTracking, shutdown as shutdownViewerTracking, getViewerStats } from './utils/viewerTracking.js';
 dotenv.config()
+
+// ─── Global crash guards ────────────────────────────────────────────────────
+// Prevent the server from dying on unhandled promise rejections or unexpected
+// thrown errors (e.g. inside event-emitter callbacks, WebTorrent internals).
+process.on('uncaughtException', (err) => {
+  console.error('💥 Uncaught Exception (server kept alive):', err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('💥 Unhandled Rejection (server kept alive):', reason);
+});
+// ────────────────────────────────────────────────────────────────────────────
 const port = process.env.PORT || 3000;
 
 // Log environment

@@ -26,6 +26,10 @@ client.on('error', (err) => {
  */
 function seedFile(filePath) {
     return new Promise((resolve, reject) => {
+        // Track whether the promise has already settled so late error events
+        // (fired after seeding has started) are logged instead of crashing.
+        let settled = false;
+
         try {
             const torrent = client.seed(filePath, (t) => {
                 // Store in active torrents map
@@ -36,6 +40,7 @@ function seedFile(filePath) {
                 console.log(`   Magnet URI: ${t.magnetURI}`);
 
                 // Resolve when seeding is ready
+                settled = true;
                 resolve({
                     magnetURI: t.magnetURI,
                     infoHash: t.infoHash,
@@ -45,8 +50,14 @@ function seedFile(filePath) {
 
             // Enhanced event logging
             torrent.on('error', (err) => {
-                console.error(`❌ Torrent error for ${torrent.name}:`, err);
-                reject(err);
+                if (!settled) {
+                    settled = true;
+                    console.error(`❌ Torrent error for ${torrent.name || filePath}:`, err);
+                    reject(err);
+                } else {
+                    // Promise already resolved — just log, don't crash
+                    console.error(`❌ Torrent error after seeding started for ${torrent.name || filePath}:`, err);
+                }
             });
 
             torrent.on('wire', (wire, addr) => {
@@ -69,7 +80,10 @@ function seedFile(filePath) {
 
         } catch (err) {
             console.error('Error seeding file:', err);
-            reject(err);
+            if (!settled) {
+                settled = true;
+                reject(err);
+            }
         }
     });
 }

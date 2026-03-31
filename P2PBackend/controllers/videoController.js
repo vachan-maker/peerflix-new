@@ -307,6 +307,9 @@ const deleteVideo = async (req, res) => {
             console.warn("Could not delete video files:", fileError.message);
         }
 
+        // Remove the database record
+        await Video.deleteOne({ _id: video._id });
+
         res.status(200).json({
             success: true,
             message: "Video deleted successfully"

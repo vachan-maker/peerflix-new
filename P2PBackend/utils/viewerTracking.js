@@ -14,6 +14,17 @@ let wss = null;
  * Initialize the WebSocket server for viewer tracking
  * @param {http.Server} server - HTTP server to attach WebSocket to
  */
+/** Safe send: silently drops the message if the socket isn't open or errors. */
+function safeSend(ws, payload) {
+    try {
+        if (ws.readyState === ws.OPEN) {
+            ws.send(typeof payload === 'string' ? payload : JSON.stringify(payload));
+        }
+    } catch (err) {
+        console.error('WebSocket send error (ignored):', err.message);
+    }
+}
+
 function initializeViewerTracking(server) {
     wss = new WebSocketServer({ server, path: '/ws/viewers' });
 
@@ -41,7 +52,7 @@ function initializeViewerTracking(server) {
         });
 
         // Send initial connection acknowledgment
-        ws.send(JSON.stringify({ type: 'connected', message: 'Viewer tracking active' }));
+        safeSend(ws, { type: 'connected', message: 'Viewer tracking active' });
     });
 
     // Broadcast viewer counts periodically
@@ -74,18 +85,10 @@ function handleMessage(ws, message) {
                 console.log(`👁️  Viewer joined video ${videoId} (${viewerCount} viewers)`);
 
                 // Send current viewer count back
-                ws.send(JSON.stringify({
-                    type: 'viewerCount',
-                    videoId,
-                    count: viewerCount
-                }));
+                safeSend(ws, { type: 'viewerCount', videoId, count: viewerCount });
 
                 // Broadcast updated count to all viewers of this video
-                broadcastToVideo(videoId, {
-                    type: 'viewerCount',
-                    videoId,
-                    count: viewerCount
-                });
+                broadcastToVideo(videoId, { type: 'viewerCount', videoId, count: viewerCount });
             }
             break;
 
@@ -94,7 +97,7 @@ function handleMessage(ws, message) {
             break;
 
         case 'ping':
-            ws.send(JSON.stringify({ type: 'pong' }));
+            safeSend(ws, { type: 'pong' });
             break;
     }
 }
@@ -133,12 +136,7 @@ function handleDisconnect(ws) {
 function broadcastToVideo(videoId, message) {
     const viewers = activeViewers.get(videoId);
     if (viewers) {
-        const messageStr = JSON.stringify(message);
-        viewers.forEach(ws => {
-            if (ws.readyState === ws.OPEN) {
-                ws.send(messageStr);
-            }
-        });
+        viewers.forEach(ws => safeSend(ws, message));
     }
 }
 
@@ -167,11 +165,7 @@ function broadcastViewerCounts() {
         torrents: torrentStats.torrents || []
     });
 
-    wss.clients.forEach(client => {
-        if (client.readyState === client.OPEN) {
-            client.send(message);
-        }
-    });
+    wss.clients.forEach(client => safeSend(client, message));
 }
 
 /**
