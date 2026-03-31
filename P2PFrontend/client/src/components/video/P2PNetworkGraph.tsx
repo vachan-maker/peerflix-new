@@ -33,19 +33,18 @@ interface Props {
   isPlaying?: boolean;
 }
 
-// Generate mock peer addresses for demo
-const generateMockPeers = (count: number): PeerData[] => {
-  const mockPeers: PeerData[] = [];
-  for (let i = 0; i < count; i++) {
-    mockPeers.push({
-      address: `${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`,
-      port: 6881 + Math.floor(Math.random() * 100),
-      uploadSpeed: Math.random() * 100000,
-      downloadSpeed: Math.random() * 50000,
-    });
+/**
+ * Deterministic hash of a string → stable float in [0, 1).
+ * Same string always yields the same number on every device.
+ */
+function deterministicHash(str: string, seed = 0): number {
+  let hash = seed;
+  for (let i = 0; i < str.length; i++) {
+    hash = (Math.imul(31, hash) + str.charCodeAt(i)) | 0;
   }
-  return mockPeers;
-};
+  // Bring into [0, 1)
+  return ((hash >>> 0) % 1000) / 1000;
+}
 
 export function P2PNetworkGraph({ peers, totalPeers = 0, className, isPlaying = false }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -53,17 +52,24 @@ export function P2PNetworkGraph({ peers, totalPeers = 0, className, isPlaying = 
   const nodesRef = useRef<Peer[]>([]);
   const [dimensions, setDimensions] = useState({ width: 400, height: 300 });
 
-  // Use real peer count only - no mocking
-  const realPeerCount = totalPeers > 0 ? totalPeers : peers.length;
-  // Only use real peers data, don't generate fake ones
-  const effectivePeers = peers.length > 0 ? peers : (realPeerCount > 0 ? generateMockPeers(realPeerCount) : []);
+  // Only use real peers — no mock generation.
+  // If peers array is empty but totalPeers > 0, build placeholder nodes with
+  // deterministic addresses so every device shows the same placeholders.
+  const effectivePeers: PeerData[] = peers.length > 0
+    ? peers
+    : Array.from({ length: Math.min(totalPeers, 12) }, (_, i) => ({
+        address: `peer-placeholder-${i}`,
+        uploadSpeed: 0,
+        downloadSpeed: 0,
+      }));
 
-  // Initialize nodes when peers change
+  // Initialize nodes deterministically when peer list changes.
+  // Key rule: a peer's position is derived ONLY from its address string,
+  // never from Math.random(), so every device computes the same layout.
   useEffect(() => {
     const centerX = dimensions.width / 2;
     const centerY = dimensions.height / 2;
-    
-    // Always have "You" as center node
+
     const newNodes: Peer[] = [
       {
         id: 'you',
@@ -72,28 +78,33 @@ export function P2PNetworkGraph({ peers, totalPeers = 0, className, isPlaying = 
         y: centerY,
         vx: 0,
         vy: 0,
-        type: 'you'
-      }
+        type: 'you',
+      },
     ];
 
-    // Add peer nodes
     effectivePeers.forEach((peer, index) => {
-      // Position peers around the center
-      const angle = (index / Math.max(effectivePeers.length, 1)) * Math.PI * 2 - Math.PI / 2;
-      const radius = 70 + Math.random() * 30;
+      const key = peer.address || `peer-${index}`;
+
+      // Deterministic angle: spread peers evenly, offset by a stable per-peer nudge
+      const baseAngle = (index / Math.max(effectivePeers.length, 1)) * Math.PI * 2 - Math.PI / 2;
+      const angleNudge = (deterministicHash(key, 1) - 0.5) * 0.3; // ±0.15 rad
+      const angle = baseAngle + angleNudge;
+
+      // Deterministic radius: 70–100
+      const radius = 70 + deterministicHash(key, 2) * 30;
 
       newNodes.push({
-        id: peer.address || `peer-${index}`,
-        address: `Peer${index + 1}`, // Display as Peer1, Peer2, etc.
-        x: centerX + Math.cos(angle) * radius + (Math.random() - 0.5) * 20,
-        y: centerY + Math.sin(angle) * radius + (Math.random() - 0.5) * 20,
-        vx: (Math.random() - 0.5) * 0.3,
-        vy: (Math.random() - 0.5) * 0.3,
+        id: key,
+        address: `Peer${index + 1}`,
+        x: centerX + Math.cos(angle) * radius,
+        y: centerY + Math.sin(angle) * radius,
+        vx: 0,
+        vy: 0,
         type: 'peer',
         uploadSpeed: peer.uploadSpeed || 0,
         downloadSpeed: peer.downloadSpeed || 0,
         uploaded: peer.uploaded || 0,
-        downloaded: peer.downloaded || 0
+        downloaded: peer.downloaded || 0,
       });
     });
 
@@ -130,42 +141,36 @@ export function P2PNetworkGraph({ peers, totalPeers = 0, className, isPlaying = 
     const centerY = height / 2;
     const nodes = nodesRef.current;
 
-    // Clear canvas with dark background
+    // Clear canvas
     ctx.fillStyle = '#1a1a2e';
     ctx.fillRect(0, 0, width, height);
 
-    // Update physics
+    // Physics — NO random jitter so animation is smooth and reproducible
     nodes.forEach((node, i) => {
       if (node.type === 'you') {
-        // Keep center node fixed
         node.x = centerX;
         node.y = centerY;
         return;
       }
 
-      // Apply forces
-      // 1. Attraction to center
+      // Attraction toward ideal orbit radius
       const dx = centerX - node.x;
       const dy = centerY - node.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
-      
-      // Keep distance between 60-100 from center
       const idealDist = 80;
       const forceMagnitude = (dist - idealDist) * 0.002;
-      
+
       if (dist > 0) {
         node.vx += (dx / dist) * forceMagnitude;
         node.vy += (dy / dist) * forceMagnitude;
       }
 
-      // 2. Repulsion from other peers
+      // Peer-peer repulsion
       nodes.forEach((other, j) => {
         if (i === j || other.type === 'you') return;
-        
         const odx = node.x - other.x;
         const ody = node.y - other.y;
         const odist = Math.sqrt(odx * odx + ody * ody);
-        
         if (odist < 40 && odist > 0) {
           const repulsion = (40 - odist) * 0.003;
           node.vx += (odx / odist) * repulsion;
@@ -173,19 +178,21 @@ export function P2PNetworkGraph({ peers, totalPeers = 0, className, isPlaying = 
         }
       });
 
-      // 3. Apply velocity with damping
+      // Apply & damp
       node.x += node.vx;
       node.y += node.vy;
       node.vx *= 0.92;
       node.vy *= 0.92;
 
-      // 4. Add slight random movement when playing
+      // Slow deterministic orbit when playing (uses time + stable per-peer seed, not Math.random)
       if (isPlaying) {
-        node.vx += (Math.random() - 0.5) * 0.15;
-        node.vy += (Math.random() - 0.5) * 0.15;
+        const peerSeed = deterministicHash(node.id, 3);
+        const t = Date.now() / 4000 + peerSeed * Math.PI * 2;
+        node.vx += Math.cos(t) * 0.05;
+        node.vy += Math.sin(t) * 0.05;
       }
 
-      // 5. Keep within bounds
+      // Bounds
       const padding = 40;
       if (node.x < padding) { node.x = padding; node.vx *= -0.5; }
       if (node.x > width - padding) { node.x = width - padding; node.vx *= -0.5; }
@@ -197,32 +204,27 @@ export function P2PNetworkGraph({ peers, totalPeers = 0, className, isPlaying = 
     const centerNode = nodes.find(n => n.type === 'you');
     if (centerNode) {
       nodes.forEach(node => {
-        if (node.type === 'peer') {
-          // Calculate line alpha based on activity
-          const alpha = isPlaying ? 0.5 + Math.sin(Date.now() / 400 + node.x) * 0.2 : 0.35;
-          
-          // Draw connection line
-          ctx.beginPath();
-          ctx.moveTo(centerNode.x, centerNode.y);
-          ctx.lineTo(node.x, node.y);
-          ctx.strokeStyle = `rgba(150, 180, 200, ${alpha})`;
-          ctx.lineWidth = 1.5;
-          ctx.stroke();
+        if (node.type !== 'peer') return;
 
-          // Draw animated data flow particles when playing
-          if (isPlaying) {
-            // Multiple particles per connection
-            for (let p = 0; p < 2; p++) {
-              const offset = p * 0.5;
-              const particlePos = ((Date.now() / 800 + offset) % 1);
-              const px = centerNode.x + (node.x - centerNode.x) * particlePos;
-              const py = centerNode.y + (node.y - centerNode.y) * particlePos;
-              
-              ctx.beginPath();
-              ctx.arc(px, py, 2.5, 0, Math.PI * 2);
-              ctx.fillStyle = `rgba(100, 200, 255, ${0.8 - particlePos * 0.5})`;
-              ctx.fill();
-            }
+        const alpha = isPlaying ? 0.5 + Math.sin(Date.now() / 400 + node.x) * 0.2 : 0.35;
+
+        ctx.beginPath();
+        ctx.moveTo(centerNode.x, centerNode.y);
+        ctx.lineTo(node.x, node.y);
+        ctx.strokeStyle = `rgba(150, 180, 200, ${alpha})`;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        // Data-flow particles when playing
+        if (isPlaying) {
+          for (let p = 0; p < 2; p++) {
+            const particlePos = ((Date.now() / 800 + p * 0.5) % 1);
+            const px = centerNode.x + (node.x - centerNode.x) * particlePos;
+            const py = centerNode.y + (node.y - centerNode.y) * particlePos;
+            ctx.beginPath();
+            ctx.arc(px, py, 2.5, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(100, 200, 255, ${0.8 - particlePos * 0.5})`;
+            ctx.fill();
           }
         }
       });
@@ -233,20 +235,14 @@ export function P2PNetworkGraph({ peers, totalPeers = 0, className, isPlaying = 
       const isCenter = node.type === 'you';
       const radius = isCenter ? 16 : 10;
 
-      // Glow effect
       const pulseAmount = isPlaying ? Math.sin(Date.now() / 300 + node.x * 0.1) * 3 : 0;
       const glowRadius = radius + 6 + pulseAmount;
 
-      const glow = ctx.createRadialGradient(
-        node.x, node.y, radius * 0.5,
-        node.x, node.y, glowRadius
-      );
-
+      const glow = ctx.createRadialGradient(node.x, node.y, radius * 0.5, node.x, node.y, glowRadius);
       if (isCenter) {
         glow.addColorStop(0, 'rgba(100, 180, 255, 0.4)');
         glow.addColorStop(1, 'rgba(100, 180, 255, 0)');
       } else {
-        // Color intensity based on activity
         const totalSpeed = (node.uploadSpeed || 0) + (node.downloadSpeed || 0);
         const alpha = totalSpeed > 0 ? 0.5 : 0.35;
         glow.addColorStop(0, `rgba(200, 200, 100, ${alpha})`);
@@ -258,60 +254,48 @@ export function P2PNetworkGraph({ peers, totalPeers = 0, className, isPlaying = 
       ctx.fillStyle = glow;
       ctx.fill();
 
-      // Node circle
       ctx.beginPath();
       ctx.arc(node.x, node.y, radius, 0, Math.PI * 2);
       ctx.fillStyle = isCenter ? '#64b4ff' : '#c8c864';
       ctx.fill();
 
-      // Node border
       ctx.strokeStyle = isCenter ? '#8cd0ff' : '#e0e080';
       ctx.lineWidth = 2;
       ctx.stroke();
 
-      // Label (peer identifier)
       ctx.font = isCenter ? 'bold 11px Inter, system-ui, sans-serif' : '9px Inter, system-ui, sans-serif';
       ctx.fillStyle = '#ffffff';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-
-      // Display peer identifier (e.g., "You", "Peer1", "Peer2")
       ctx.fillText(node.address, node.x, node.y - radius - 10);
 
-      // Display upload/download speeds for peer nodes
       if (!isCenter) {
         const uploadSpeed = node.uploadSpeed || 0;
         const downloadSpeed = node.downloadSpeed || 0;
 
-        // Upload speed (green, above the node)
         if (uploadSpeed > 0) {
           ctx.font = 'bold 8px Inter, system-ui, sans-serif';
-          ctx.fillStyle = '#34d399'; // green
+          ctx.fillStyle = '#34d399';
           ctx.textAlign = 'center';
-          const uploadText = `↑ ${formatSpeed(uploadSpeed)}`;
-          ctx.fillText(uploadText, node.x, node.y + radius + 12);
+          ctx.fillText(`↑ ${formatSpeed(uploadSpeed)}`, node.x, node.y + radius + 12);
         }
 
-        // Download speed (blue, below upload)
         if (downloadSpeed > 0) {
           ctx.font = 'bold 8px Inter, system-ui, sans-serif';
-          ctx.fillStyle = '#60a5fa'; // blue
+          ctx.fillStyle = '#60a5fa';
           ctx.textAlign = 'center';
-          const downloadText = `↓ ${formatSpeed(downloadSpeed)}`;
-          ctx.fillText(downloadText, node.x, node.y + radius + (uploadSpeed > 0 ? 22 : 12));
+          ctx.fillText(`↓ ${formatSpeed(downloadSpeed)}`, node.x, node.y + radius + (uploadSpeed > 0 ? 22 : 12));
         }
 
-        // Show idle state if no activity
         if (uploadSpeed === 0 && downloadSpeed === 0) {
           ctx.font = '7px Inter, system-ui, sans-serif';
-          ctx.fillStyle = '#6b7280'; // gray
+          ctx.fillStyle = '#6b7280';
           ctx.textAlign = 'center';
           ctx.fillText('idle', node.x, node.y + radius + 12);
         }
       }
     });
 
-    // Continue animation
     animationRef.current = requestAnimationFrame(animate);
   }, [dimensions, isPlaying]);
 
@@ -319,17 +303,14 @@ export function P2PNetworkGraph({ peers, totalPeers = 0, className, isPlaying = 
   useEffect(() => {
     animate();
     return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
+      if (animationRef.current) cancelAnimationFrame(animationRef.current);
     };
   }, [animate]);
 
-  // Display count - use totalPeers if available, otherwise count from effectivePeers
   const displayPeerCount = totalPeers > 0 ? totalPeers : effectivePeers.length;
 
   return (
-    <div className={cn("relative w-full h-full min-h-[250px]", className)}>
+    <div className={cn('relative w-full h-full min-h-[250px]', className)}>
       <canvas
         ref={canvasRef}
         width={dimensions.width}
@@ -337,7 +318,7 @@ export function P2PNetworkGraph({ peers, totalPeers = 0, className, isPlaying = 
         className="w-full h-full"
         style={{ background: '#1a1a2e' }}
       />
-      
+
       {/* Legend */}
       <div className="absolute bottom-3 left-3 flex items-center gap-4 text-xs">
         <div className="flex items-center gap-1.5">
@@ -350,8 +331,9 @@ export function P2PNetworkGraph({ peers, totalPeers = 0, className, isPlaying = 
         </div>
       </div>
 
-      {/* Peer count */}
-      <div className="absolute top-3 right-3 px-2 py-1 bg-black/40 rounded text-xs text-gray-300">
+      {/* Peer count + live indicator */}
+      <div className="absolute top-3 right-3 flex items-center gap-2 px-2 py-1 bg-black/40 rounded text-xs text-gray-300">
+        {isPlaying && <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />}
         {displayPeerCount} peer{displayPeerCount !== 1 ? 's' : ''} connected
       </div>
     </div>

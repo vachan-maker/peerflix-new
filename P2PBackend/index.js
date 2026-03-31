@@ -40,7 +40,7 @@ const app = express();
 // Rate limiting configuration - protect against DDoS attacks
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // 100 requests per 15 minutes per IP
+  max: 500, // 500 requests per 15 minutes per IP (raised from 100 — polling hits limits fast)
   message: {
     success: false,
     error: 'Too many requests from this IP, please try again later.'

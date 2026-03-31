@@ -116,11 +116,12 @@ export default function WatchNew() {
     enabled: !!videoId,
   });
 
-  // Fetch stats
+  // Fetch stats — WebSocket (useViewerTracking) already provides real-time data every 2s.
+  // This REST poll is just a fallback; 30s is fine and avoids hitting the rate limiter.
   const { data: statsData } = useQuery({
     queryKey: ['p2p-stats'],
     queryFn: fetchStats,
-    refetchInterval: 5000,
+    refetchInterval: 30000, // was 5000 — WebSocket covers real-time needs
   });
 
   // Fetch related videos
