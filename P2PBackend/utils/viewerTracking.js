@@ -161,7 +161,9 @@ function broadcastViewerCounts() {
         downloadSpeed: torrentStats.downloadSpeed || 0,
         totalUploaded: torrentStats.totalUploaded || 0,
         totalDownloaded: torrentStats.totalDownloaded || 0,
-        totalPeers: torrentStats.totalPeers || 0,
+        // Include active viewers in totalPeers \u2014 matches the REST /stats endpoint formula
+        // so all devices see the same number regardless of WS vs REST data source.
+        totalPeers: (torrentStats.totalPeers || 0) + (allCounts.totalViewers || 0),
         torrents: torrentStats.torrents || []
     });
 
